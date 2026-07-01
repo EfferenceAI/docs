@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
-  "name": "Efference.ai",
+  "name": "Efference",
   "colors": {
     "primary": "#808080",
     "light": "#E5E5E5",
@@ -22,7 +22,10 @@
     "dark": "/logo/dark.png",
     "href": "https://efference.ai"
   },
-  "favicon": "/favicon.svg",
+  "favicon": {
+    "light": "/images/favicon.png",
+    "dark": "/images/favicon.png"
+  },
   "navbar": {
     "links": [
       {
@@ -31,25 +34,41 @@
       },
       {
         "label": "GitHub",
-        "href": "https://github.com/efference-ai"
+        "href": "https://github.com/efferenceai"
       }
     ]
   },
   "navigation": {
     "groups": [
       {
-        "group": "Getting Started",
+        "group": "Introduction",
         "pages": [
           "index",
-          "quickstart"
+          "quickstart",
+          "untitled-page"
         ]
+      },
+      {
+        "group": "Development",
+        "pages": []
+      },
+      {
+        "group": "Tools",
+        "pages": []
+      },
+      {
+        "group": "API",
+        "pages": []
       }
     ]
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/efference-ai",
-      "x": "https://x.com/efference_ai"
+      "github": "https://github.com/efferenceai",
+      "x": "https://x.com/efferenceai"
     }
+  },
+  "fonts": {
+    "family": "Inter"
   }
 }
