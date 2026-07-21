@@ -1,0 +1,32 @@
+---
+title: "ef-grab — Capture Demo"
+description: "Headless open/grab/retrieve loop with frame and IMU counters"
+---
+
+`ef-grab` runs the canonical capture loop and prints a live summary — the
+quickest way to verify the data plane without a display.
+
+```
+ef-grab [seconds] [--codec raw|h264|h264hq|h265|h265hq] [--record out.mcap]
+        [--ble MAC] [--password PW] [--udp HOST[:PORT]] [--flip on|off|auto] [--verbose]
+```
+
+```sh
+$ ef-grab 10
+open — USB, state STREAMING
+frame 1  1920x1200  ts=1721395512000000000  imu=12 (STATIC)
+frame 31  1920x1200  ...
+301 frames, 3980 imu samples in 10.0 s (30.1 fps)
+```
+
+| Flag | Meaning |
+|---|---|
+| `seconds` | run duration (default: until Ctrl-C) |
+| `--codec` | session compression mode |
+| `--record out.mcap` | tee the session to a host `.mcap` |
+| `--ble` / `--password` / `--udp` | wireless transport (BLE control + UDP data) |
+| `--flip` | rotate the frame 180° host-side (`auto` = decide from IMU) |
+
+Use it as a smoke test: a healthy wired session shows the configured fps and
+a steady IMU rate; frame gaps or a low rate point at bandwidth or consumer
+problems before you debug your own application.

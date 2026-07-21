@@ -1,0 +1,74 @@
+---
+title: "Tutorial 5 — Recording & Replay"
+description: "Record a session to .mcap, then replay it through the same API"
+---
+
+## Record
+
+```cpp
+#include <ef/Device.hpp>
+
+using namespace ef;
+
+int main() {
+    Device dev;
+    if (dev.open() != ERROR_CODE::SUCCESS) return 1;
+
+    RecordingParameters rp;
+    rp.target = RECORDING_TARGET::HOST_FILE;
+    rp.path   = "session.mcap";
+    if (dev.enable_recording(rp) != ERROR_CODE::SUCCESS) return 1;
+
+    // Record ~300 frames. The recorder also captures every IMU sample —
+    // even though this loop never calls retrieve_imu().
+    Mat image;
+    for (int n = 0; n < 300;) {
+        ERROR_CODE ec = dev.grab();
+        if (ec == ERROR_CODE::GRAB_TIMEOUT || ec == ERROR_CODE::CORRUPTED_FRAME) continue;
+        if (ec != ERROR_CODE::SUCCESS) break;
+        n++;
+    }
+
+    dev.disable_recording();
+    dev.close();
+    return 0;
+}
+```
+
+## Replay
+
+Same API — swap the transport for the file:
+
+```cpp
+InitParameters init;
+init.input_type = INPUT_TYPE::MCAP;
+init.mcap_path  = "session.mcap";
+
+Device dev;
+if (dev.open(init) != ERROR_CODE::SUCCESS) return 1;
+
+Mat image;
+SensorsData sensors;
+uint64_t frames = 0, samples = 0;
+for (;;) {
+    ERROR_CODE ec = dev.grab();
+    if (ec == ERROR_CODE::END_OF_BUFFER) break;    // file exhausted
+    if (ec != ERROR_CODE::SUCCESS)       continue;
+    if (dev.retrieve_image(image) == ERROR_CODE::SUCCESS) frames++;
+    if (dev.retrieve_imu(sensors) == ERROR_CODE::SUCCESS) samples += sensors.samples.size();
+}
+std::printf("%llu frames, %llu imu samples\n",
+            (unsigned long long)frames, (unsigned long long)samples);
+dev.close();
+```
+
+## Walkthrough
+
+- One loop-exit condition is unique to replay: `END_OF_BUFFER`.
+- The `.mcap` uses the same schema whether recorded on the host or on the
+  device (`RECORDING_TARGET::DEVICE_LOCAL`), so field recordings collected
+  with `ef record start` replay through this exact code.
+- For a device-local recording instead, set `rp.target =
+  RECORDING_TARGET::DEVICE_LOCAL` and a `name` — it survives host disconnect
+  and downloads later with `download_recording()`. Ships as
+  `examples/wired/05_record_and_download.cpp`.

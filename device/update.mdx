@@ -1,0 +1,55 @@
+---
+title: "Firmware Updates"
+description: "Check for, apply, and monitor firmware updates — over the air or sideloaded"
+---
+
+Firmware ships as a signed `.eff` image with A/B slots on the device — a
+failed update rolls back automatically. Updates apply from `IDLE`; the SDK
+pauses an active streaming session and restores it afterwards.
+
+## Check and apply
+
+```cpp
+bool available = false;
+if (dev.check_update(available) == ERROR_CODE::SUCCESS && available) {
+    ERROR_CODE ec = dev.update("", [](const UpdateStatus& s) {
+        std::printf("update: %s %d%%\n", s.message.c_str(), s.progress);
+    });
+    // DEVICE_UP_TO_DATE is also a possible (benign) result
+}
+```
+
+The `url` argument selects the source:
+
+| `url` | Behavior |
+|---|---|
+| `""` | the device's configured update server |
+| `https://...` | explicit server (device downloads over WiFi) |
+| `firmware.eff` (local path) | **sideload** — pushed over USB/BLE, no WiFi needed |
+
+`update()` blocks through download, verify, and apply, reporting progress via
+the callback (`UPDATE_STATE::DOWNLOADING → VERIFYING → READY_TO_APPLY →
+APPLYING`), then reboots the device. Poll asynchronously instead with
+`get_update_status()`, or cancel with `abort_update()`.
+
+```cpp
+UpdateStatus st;
+dev.get_update_status(st);
+// st.active, st.state, st.progress (0-100, -1 indeterminate)
+// st.running_version_int, st.target_version_int
+```
+
+## From the CLI
+
+```sh
+ef check-update
+ef update                      # configured server
+ef update firmware.eff         # sideload a local image
+ef abort-update
+```
+
+<Warning>
+A host-file recording cannot span an update (the device reboots); the SDK
+finalizes the `.mcap` before applying. Device-local recordings must be
+stopped first — the device refuses OTA while recording.
+</Warning>

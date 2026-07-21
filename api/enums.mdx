@@ -1,0 +1,97 @@
+---
+title: "Enums"
+description: "Every public enumeration, with semantics"
+---
+
+All enums live in `<ef/Enums.hpp>` and have a `to_string()` overload.
+
+## ERROR_CODE
+
+Returned by every wire-touching call. Numeric blocks group the semantics:
+
+### 0 · Success
+| Value | Meaning |
+|---|---|
+| `SUCCESS` | operation succeeded |
+
+### 10–19 · Informational (non-fatal, session survives)
+| Value | Meaning |
+|---|---|
+| `SENSOR_CONFIGURATION_CHANGED` | config changed mid-stream; SDK reconnects |
+| `CONFIGURATION_FALLBACK` | target config failed; fallback applied |
+| `DEVICE_REBOOTING` | device rebooting, temporarily unreachable |
+| `FAILED_TO_UPDATE` | firmware update failed |
+| `DEVICE_UP_TO_DATE` | already on the latest firmware |
+
+### 20–39 · Setup & call sequencing
+| Value | Meaning |
+|---|---|
+| `DEVICE_NOT_DETECTED` | no device found |
+| `DEVICE_NOT_INITIALIZED` | missing `open()` |
+| `DEVICE_NOT_AVAILABLE` | detected but could not open |
+| `INVALID_FIRMWARE` | corrupted/unrecognized firmware image |
+| `INVALID_FUNCTION_CALL` | call illegal in the current `DEVICE_STATE` |
+| `INVALID_PASSWORD` | BLE password rejected |
+| `INSUFFICIENT_PERMISSIONS` | USB access denied — install the udev rule |
+| `UNSUPPORTED` | not supported in this build |
+
+### 40–59 · Sensor parameters & calibration
+| Value | Meaning |
+|---|---|
+| `INVALID_RESOLUTION` / `INVALID_FPS` / `UNSUPPORTED_COMPRESSION` | rejected against the device's capability menu |
+| `CALIBRATION_FILE_NOT_AVAILABLE` / `INVALID_CALIBRATION_FILE` | calibration missing / unreadable |
+| `POTENTIAL_CALIBRATION_ISSUE` | runtime values suggest a calibration problem |
+
+### 60–79 · Hardware & transport
+| Value | Meaning |
+|---|---|
+| `LOW_USB_BANDWIDTH` | insufficient bandwidth (USB 2.0 port?) |
+| `CANNOT_START_CAMERA_STREAM` | stream would not start (in use?) |
+| `COMMUNICATION_ERROR` | a control round trip failed |
+| `WIFI_NOT_CONNECTED` | operation needs WiFi; device not associated |
+
+### 80–99 · Streaming & recording
+| Value | Meaning |
+|---|---|
+| `CORRUPTED_FRAME` | frame incomplete or failed to decode |
+| `SESSION_RECORDING_ERROR` | recording failed |
+| `END_OF_BUFFER` | MCAP replay exhausted |
+| `GRAB_TIMEOUT` | no frame within `grab_timeout_ms` — non-fatal, keep looping |
+| `STORAGE_FULL` | device storage below the free-space floor |
+| `RECORDING_NOT_FOUND` / `RECORDING_ALREADY_EXISTS` | name errors |
+
+### 100 · `UNKNOWN_FAILURE`
+
+## Session & transport
+
+| Enum | Values | Notes |
+|---|---|---|
+| `INPUT_TYPE` | `USB`, `STREAM`, `MCAP` | transport in `InitParameters` |
+| `RESOLUTION` | `HD1200` (1920×1200), `HD1080` (1920×1080), `SVGA` (960×600), `AUTO` | `AUTO` = device native |
+| `COMPRESSION_MODE` | `RAW`, `H264`, `H264_HQ`, `H265`, `H265_HQ` | `_HQ` = near-lossless tier |
+| `FLIP_MODE` | `ON`, `OFF`, `AUTO` | `AUTO` decides from IMU gravity |
+| `VIEW` | `GRAY`, `BGR`, `RGB`, `BGRA`, `RGBA`, `NV12` | `retrieve_image()` output format |
+| `MAT_TYPE` | `U8_C1`, `U8_C3`, `U8_C4`, `NV12` | element layout of a `Mat` |
+| `MEM` | `CPU`, `GPU`, `BOTH` | destination memory |
+
+## State & classification
+
+| Enum | Values | Notes |
+|---|---|---|
+| `DEVICE_STATE` | `CLOSED`, `IDLE`, `STREAMING`, `UPDATING` | no UNKNOWN: unreadable state surfaces as an `ERROR_CODE`, `get_state()` keeps the last known value |
+| `MOTION_STATE` | `STATIC`, `MOVING`, `FALLING` | on-device IMU classification (ZUPT / free-fall) |
+| `CAMERA_STATE` / `SENSOR_STATE` | `AVAILABLE`, `NOT_AVAILABLE` | set by `health_check()` |
+| `TIME_REFERENCE` | `IMAGE`, `CURRENT` | frame capture time vs host now |
+| `COORDINATE_SYSTEM` | `IMAGE`, `LEFT/RIGHT_HANDED_Y_UP`, `RIGHT/LEFT_HANDED_Z_UP`, `RIGHT_HANDED_Z_UP_X_FWD` | IMU/pose convention |
+
+## Recording & maintenance
+
+| Enum | Values | Notes |
+|---|---|---|
+| `RECORDING_TARGET` | `HOST_FILE`, `DEVICE_LOCAL` | device-local survives host disconnect |
+| `UPLOAD_STATE` | `RUNNING`, `OFF` | failures surface as `ERROR_CODE` |
+| `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING` | firmware update phases |
+| `MODEL` | `M1` | |
+| `SENSOR_TYPE` | `ACCELEROMETER`, `GYROSCOPE` | |
+| `SENSORS_UNIT` | `M_SEC_2`, `DEG_SEC`, `CELSIUS`, `HERTZ` | |
+| `LENS_DISTORTION_MODEL` | `DS` | double-sphere camera model |

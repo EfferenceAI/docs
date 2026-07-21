@@ -1,0 +1,82 @@
+---
+title: "Quickstart — Wireless (BLE + WiFi)"
+description: "Connect to the M1 over Bluetooth LE and stream video + IMU over WiFi"
+---
+
+Wireless splits into two planes: **Bluetooth LE carries control** (commands,
+status), and **WiFi/UDP carries data** (video + IMU pushed from the device to
+your host). BLE alone gives you a control-only session — enough for info,
+health checks, and managing recordings.
+
+<Steps>
+  <Step title="Find the device">
+    ```sh
+    ef list --scan-ble
+    ```
+    Power on the M1 and it advertises as `Efference M1`. Note the MAC address.
+  </Step>
+  <Step title="Control over BLE">
+    ```sh
+    ef --ble AA:BB:CC:DD:EE:FF info
+    ```
+    The factory control password is `123456`; pass `--password` if you have
+    rekeyed it (`ef set-password`).
+  </Step>
+  <Step title="Provision WiFi (once)">
+    ```sh
+    ef --ble AA:BB:CC:DD:EE:FF wifi add MyNetwork MyPassphrase US
+    ef --ble AA:BB:CC:DD:EE:FF wifi status
+    ```
+    The country code (ISO regdomain, e.g. `US`) unlocks 5 GHz channels.
+  </Step>
+  <Step title="Stream video over WiFi">
+    ```sh
+    efference-viewer --ble AA:BB:CC:DD:EE:FF --udp 192.168.1.50
+    ```
+    `--udp` is **your host's IP** as the device can reach it — the device
+    pushes the stream to you (default port 5005).
+  </Step>
+</Steps>
+
+## The same thing in C++
+
+```cpp
+#include <ef/Device.hpp>
+
+using namespace ef;
+
+int main() {
+    InitParameters init;
+    init.input_type   = INPUT_TYPE::STREAM;      // BLE control plane
+    init.ble_address  = "AA:BB:CC:DD:EE:FF";
+    init.ble_password = "123456";
+    init.udp_host     = "192.168.1.50";          // this machine's IP
+    init.udp_port     = 5005;
+
+    Device dev;
+    if (dev.open(init) != ERROR_CODE::SUCCESS) return 1;
+
+    Mat image;
+    while (dev.grab() == ERROR_CODE::SUCCESS ||
+           dev.grab() == ERROR_CODE::GRAB_TIMEOUT) {
+        if (dev.retrieve_image(image, VIEW::RGBA) == ERROR_CODE::SUCCESS) {
+            // 1920x1200 RGBA in image.data
+        }
+    }
+    dev.close();
+    return 0;
+}
+```
+
+<Warning>
+Leave `udp_host` empty for a **control-only** session — the device stays in
+`IDLE` and `grab()` is unavailable. This is the right mode for wireless
+health checks, recording management, and updates.
+</Warning>
+
+<Note>
+The UDP stream is lossy by design. The SDK detects sequence gaps and requests
+a fresh keyframe from the device automatically (PLI), so brief glitches heal
+within a few frames. Frames that arrive incomplete are dropped silently unless
+you set `RuntimeParameters::return_partial`.
+</Note>

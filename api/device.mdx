@@ -1,0 +1,133 @@
+---
+title: "ef::Device"
+description: "The device handle — lifecycle, data plane, and control plane"
+---
+
+`ef::Device` is the single entry point to the SDK. It is move-only (one handle
+owns one device session).
+
+**Contract highlights** (from `Device.hpp`):
+
+- `open()` claims the device **and starts capture** on transports that carry
+  a data plane (USB, MCAP; BLE + `udp_host` for WiFi streaming). `grab()`
+  works immediately.
+- Calls that touch the wire return `ERROR_CODE`; data comes back through
+  `out` parameters. `get_*` methods without an `ERROR_CODE` never block —
+  they return cached values.
+- Illegal calls for the current `DEVICE_STATE` return
+  `INVALID_FUNCTION_CALL` without touching the device.
+
+## Lifecycle
+
+```cpp
+static std::vector<DeviceProperties> get_device_list(bool scan_ble = false,
+                                                     uint32_t scan_ms = 3000);
+```
+Discover attached devices — USB always, BLE advertisers when `scan_ble` is
+set. Static: needs no open handle.
+
+```cpp
+ERROR_CODE open(InitParameters params = InitParameters());
+bool       is_open() const;
+void       close();
+InitParameters get_init_parameters() const;
+DEVICE_STATE   get_state() const;
+```
+`open()` validates the session configuration against the device's enabled
+capability menu (`INVALID_RESOLUTION` / `INVALID_FPS` /
+`UNSUPPORTED_COMPRESSION`), syncs the device clock, and starts capture.
+`close()` stops any host recording and releases the transport. `get_state()`
+returns the last known `DEVICE_STATE` and never blocks.
+
+## Data plane
+
+```cpp
+ERROR_CODE grab(RuntimeParameters params = RuntimeParameters());
+```
+Block until the next frame is assembled (at most `grab_timeout_ms`).
+Returns `SUCCESS`, `GRAB_TIMEOUT` (non-fatal, loop), `CORRUPTED_FRAME`
+(lossy frame; delivered only with `return_partial`), `END_OF_BUFFER`
+(MCAP replay exhausted), or `COMMUNICATION_ERROR` (transport died).
+
+```cpp
+ERROR_CODE retrieve_image(Mat& mat, VIEW view = VIEW::NV12);
+```
+Decode/convert the grabbed frame into `mat` in the requested `VIEW`. Views
+other than `NV12` require the FFmpeg build. The `Mat` owns its buffer.
+
+```cpp
+ERROR_CODE retrieve_imu(SensorsData& data,
+                        TIME_REFERENCE ref = TIME_REFERENCE::IMAGE);
+```
+Drain every IMU sample since the previous call. Samples are never lost
+between grabs — they queue in the SDK.
+
+```cpp
+Timestamp get_timestamp(TIME_REFERENCE ref = TIME_REFERENCE::CURRENT) const;
+```
+`IMAGE` = last grabbed frame's capture time (device clock); `CURRENT` = host
+wall clock now.
+
+## Identity & health
+
+```cpp
+DeviceInformation get_device_information() const;    // cached at open()
+ERROR_CODE health_check(HealthStatus& out, bool deep = false);  // blocks
+HealthStatus get_health_status() const;              // last completed sweep
+```
+
+## Recording
+
+```cpp
+ERROR_CODE enable_recording(RecordingParameters params);
+ERROR_CODE disable_recording();
+RecordingParameters get_recording_parameters() const;
+
+ERROR_CODE get_recording_status(RecordingStatus& out, const std::string& name = "");
+ERROR_CODE list_recordings(std::vector<RecordingStatus>& out);
+ERROR_CODE get_storage(uint64_t& free_bytes, uint64_t& total_bytes);
+ERROR_CODE delete_recording(const std::string& name);
+ERROR_CODE download_recording(const std::string& name, const std::string& dest_path);
+ERROR_CODE upload_recording(const std::string& name, const std::string& url);
+ERROR_CODE stop_upload(const std::string& name);
+```
+`HOST_FILE` tees the live stream to a local `.mcap`; `DEVICE_LOCAL` records
+on the device's eMMC and survives host disconnect. `download_recording` pulls
+over the control link (USB/BLE — no WiFi needed); `upload_recording` pushes
+from the device to a pre-signed URL over WiFi.
+
+## Updates
+
+```cpp
+ERROR_CODE check_update(bool& available);
+ERROR_CODE update(const std::string& url = "",
+                  const std::function<void(const UpdateStatus&)>& on_progress = {});
+ERROR_CODE abort_update();
+ERROR_CODE get_update_status(UpdateStatus& out);
+```
+`url`: `""` = configured server, an `http(s)` URL, or a **local `.eff` path**
+(sideloaded over the control link). `update()` blocks through apply and
+reboot, reporting progress via the callback.
+
+## WiFi, time, location, admin
+
+```cpp
+ERROR_CODE wifi_add(const std::string& ssid, const std::string& psk,
+                    const std::string& country = "");   // "US" unlocks 5 GHz
+ERROR_CODE wifi_remove(const std::string& ssid);
+ERROR_CODE wifi_select(const std::string& ssid);
+
+ERROR_CODE set_ble_password(const std::string& old_password,
+                            const std::string& new_password);
+
+ERROR_CODE sync_time();
+ERROR_CODE get_device_time(Timestamp& out);
+
+ERROR_CODE set_location(double latitude, double longitude,
+                        double altitude = 0.0, double covariance_diag = 0.0);
+ERROR_CODE get_location(Location& out);
+
+ERROR_CODE set_configuration(int width, int height, int fps,
+                             COMPRESSION_MODE codec);   // persisted; IDLE only
+ERROR_CODE reboot();
+```

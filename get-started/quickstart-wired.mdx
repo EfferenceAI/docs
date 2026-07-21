@@ -1,0 +1,85 @@
+---
+title: "Quickstart — Wired (USB)"
+description: "Plug in the M1, read its identity, run a health check, and see live video"
+---
+
+Everything in this guide uses the USB cable only — no WiFi or Bluetooth setup.
+
+<Steps>
+  <Step title="Plug in and discover">
+    ```sh
+    ./sdk/linux/build/ef list
+    ```
+    Every attached M1 prints with its `device_id` and serial. If nothing shows
+    up, check the cable (data, not charge-only) and the udev rule
+    (see [Installation](/get-started/installation)).
+  </Step>
+  <Step title="Device information">
+    ```sh
+    ef info
+    ```
+    Serial, firmware version, enabled capture modes, camera calibration, IMU
+    noise densities, and WiFi/BT MAC addresses — everything cached by the SDK
+    at `open()`.
+  </Step>
+  <Step title="Health check">
+    ```sh
+    ef health          # quick sweep
+    ef health --deep   # + ~2 min stress tier
+    ```
+    Each probe prints `PASS` / `FAIL` / `SKIP` with detail.
+  </Step>
+  <Step title="Live video">
+    ```sh
+    efference-viewer
+    ```
+    A window opens with the decoded stream; the title bar shows live IMU
+    values. `Q` or `Esc` quits.
+  </Step>
+</Steps>
+
+## The same thing in C++
+
+```cpp
+#include <cstdio>
+#include <ef/Device.hpp>
+
+using namespace ef;
+
+int main() {
+    Device dev;
+    ERROR_CODE ec = dev.open();   // USB is the default transport
+    if (ec != ERROR_CODE::SUCCESS) {
+        std::printf("open failed: %s\n", to_string(ec));
+        return 1;
+    }
+
+    DeviceInformation info = dev.get_device_information();
+    std::printf("serial:   %s\n", info.serial.c_str());
+    std::printf("firmware: %u\n", info.firmware_version);
+
+    HealthStatus health;
+    if (dev.health_check(health) == ERROR_CODE::SUCCESS)
+        std::printf("health:   %s\n", health.passed ? "PASS" : "FAIL");
+
+    dev.close();
+    return 0;
+}
+```
+
+<Note>
+`open()` starts capture automatically on transports that carry a data plane
+(USB, MCAP). There is no separate "start streaming" call — `grab()` works
+immediately after `open()` succeeds.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Capture video" icon="video" href="/video/capture">
+    The grab / retrieve loop, pixel formats, and compression modes.
+  </Card>
+  <Card title="Read the IMU" icon="compass" href="/sensors/imu">
+    Accelerometer and gyroscope samples, timestamps, motion state.
+  </Card>
+</CardGroup>

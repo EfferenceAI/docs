@@ -39,26 +39,65 @@
     ]
   },
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Introduction",
-        "pages": [
-          "index",
-          "quickstart",
-          "untitled-page"
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "get-started/installation",
+              "get-started/quickstart-wired",
+              "get-started/quickstart-wireless"
+            ]
+          },
+          {
+            "group": "Modules",
+            "pages": [
+              "video/capture",
+              "sensors/imu",
+              "recording/overview",
+              "recording/replay",
+              "device/health",
+              "device/wifi",
+              "device/update",
+              "device/management"
+            ]
+          },
+          {
+            "group": "Command-Line Tools",
+            "pages": [
+              "tools/ef",
+              "tools/ef-grab",
+              "tools/efference-viewer"
+            ]
+          },
+          {
+            "group": "Tutorials",
+            "pages": [
+              "tutorials/hello-device",
+              "tutorials/health-check",
+              "tutorials/image-capture",
+              "tutorials/sensor-data",
+              "tutorials/recording"
+            ]
+          }
         ]
       },
       {
-        "group": "Development",
-        "pages": []
-      },
-      {
-        "group": "Tools",
-        "pages": []
-      },
-      {
-        "group": "API",
-        "pages": []
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/device",
+              "api/parameters",
+              "api/types",
+              "api/enums"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -72,3 +111,4 @@
     "family": "Inter"
   }
 }
+

@@ -1,0 +1,88 @@
+---
+title: "Video Capture"
+description: "The open / grab / retrieve loop, pixel formats, and compression modes"
+---
+
+## The capture loop
+
+Capture follows the same grammar as a stereo camera SDK: `open()` claims the
+device and starts the stream, `grab()` blocks until the next frame is
+assembled, `retrieve_image()` hands it to you in the format you ask for.
+
+```cpp
+Device dev;
+InitParameters init;
+init.resolution  = RESOLUTION::AUTO;          // device native (1920x1200)
+init.fps         = 30;
+init.compression = COMPRESSION_MODE::H265;
+if (dev.open(init) != ERROR_CODE::SUCCESS) return 1;
+
+Mat image;
+while (true) {
+    ERROR_CODE ec = dev.grab();
+    if (ec == ERROR_CODE::GRAB_TIMEOUT)    continue;  // no frame yet — keep looping
+    if (ec == ERROR_CODE::CORRUPTED_FRAME) continue;  // lossy frame dropped
+    if (ec != ERROR_CODE::SUCCESS)         break;     // transport fault
+
+    dev.retrieve_image(image, VIEW::RGBA);
+    // image.data — owned pixel buffer
+    // image.timestamp — capture time, device clock
+    // image.frame_id — monotonic counter
+}
+dev.close();
+```
+
+`grab()` returns `GRAB_TIMEOUT` when no frame arrived within
+`InitParameters::grab_timeout_ms` (default 1000 ms). It is non-fatal — loop.
+Everything else non-`SUCCESS` means the session is in trouble.
+
+## Views
+
+`retrieve_image()` converts to the `VIEW` you request:
+
+| VIEW | Layout | Typical use |
+|---|---|---|
+| `NV12` | planar Y + interleaved UV | zero-cost (native wire format) |
+| `RGBA` / `BGRA` | packed 4-channel | rendering, GPU upload |
+| `RGB` / `BGR` | packed 3-channel | OpenCV (`BGR` is its native order) |
+| `GRAY` | single channel | feature tracking |
+
+Any view except `NV12` requires the SDK to be built with FFmpeg (color
+conversion runs through swscale). Wrapping the result for OpenCV is zero-copy:
+
+```cpp
+dev.retrieve_image(image, VIEW::BGR);
+cv::Mat frame(image.resolution.height, image.resolution.width,
+              CV_8UC3, image.data.data(), image.step);
+```
+
+## Compression modes
+
+Set once in `InitParameters::compression`:
+
+| Mode | Wire format | Notes |
+|---|---|---|
+| `RAW` | uncompressed NV12 | highest bandwidth, no decode needed |
+| `H264` / `H265` | encoded | default `H265`; decode needs FFmpeg |
+| `H264_HQ` / `H265_HQ` | near-lossless | high-bitrate quality tier |
+
+The device validates the resolution/fps/codec tuple against its enabled
+capability menu at `open()`; a bad combination fails with
+`INVALID_RESOLUTION`, `INVALID_FPS`, or `UNSUPPORTED_COMPRESSION`. The menu
+itself is in `get_device_information().capabilities`.
+
+## Flip
+
+A camera mounted upside-down can be corrected host-side with
+`InitParameters::flip_mode`:
+
+- `OFF` (default) / `ON` — fixed
+- `AUTO` — decided once from the IMU gravity vector at stream start
+
+The flip applies to retrieved images only, never to on-device recordings.
+
+## Timestamps
+
+`Mat::timestamp` is the capture time on the **device clock**, which `open()`
+aligns to the host clock (`sync_time()`). `dev.get_timestamp(TIME_REFERENCE::CURRENT)`
+returns host wall time for latency measurements.

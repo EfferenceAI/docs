@@ -1,0 +1,84 @@
+---
+title: "Recording"
+description: "Record to a host .mcap or to the device's internal storage"
+---
+
+Recordings are **MCAP** files — the same schema and topic layout whether they
+were written on the host or on the device, so both replay identically.
+
+## Two targets
+
+| | `HOST_FILE` | `DEVICE_LOCAL` |
+|---|---|---|
+| Written to | a `.mcap` path on your machine | the device's eMMC |
+| Requires | live data plane (USB or UDP) | control link only |
+| Survives host disconnect | no | **yes** |
+| Typical use | development, debugging | field data collection |
+
+## Host-file recording
+
+Tees the live stream you are already grabbing into a local `.mcap`:
+
+```cpp
+RecordingParameters rp;
+rp.target = RECORDING_TARGET::HOST_FILE;
+rp.path   = "session.mcap";
+dev.enable_recording(rp);
+
+// ... your normal grab loop; video + every IMU sample are recorded ...
+
+dev.disable_recording();
+```
+
+While recording, the SDK drains the IMU on every `grab()` so the file carries
+all samples even if you never call `retrieve_imu()`.
+
+## Device-local recording
+
+Runs on the device itself — start it, unplug, and collect later:
+
+```cpp
+RecordingParameters rp;
+rp.target = RECORDING_TARGET::DEVICE_LOCAL;
+rp.name   = "run_42";          // "" lets the device pick a name
+dev.enable_recording(rp);
+// safe to close() / disconnect here — recording continues
+```
+
+Manage sessions over any control link (USB or BLE):
+
+```cpp
+std::vector<RecordingStatus> all;
+dev.list_recordings(all);
+
+RecordingStatus rs;
+dev.get_recording_status(rs);              // "" = the active session
+
+dev.download_recording("run_42", "run_42.mcap");  // pull over USB/BLE
+dev.delete_recording("run_42");
+
+uint64_t free_b, total_b;
+dev.get_storage(free_b, total_b);          // eMMC headroom
+```
+
+A recording refused for space reports `STORAGE_FULL`; a duplicate name
+reports `RECORDING_ALREADY_EXISTS`.
+
+## Uploading from the device
+
+With WiFi provisioned, the device can push a recording to a pre-signed URL
+directly — no host in the data path:
+
+```cpp
+dev.upload_recording("run_42", "https://bucket.s3.amazonaws.com/...");
+// poll get_recording_status(rs, "run_42") — rs.upload, rs.upload_bytes_sent
+dev.stop_upload("run_42");   // cancel
+```
+
+Upload without WiFi connectivity fails with `WIFI_NOT_CONNECTED`.
+
+## Location metadata
+
+Each recording carries a `LocationFix`. Set the persistent device location
+once with `dev.set_location(lat, lon)`, or override per-session via
+`RecordingParameters::location`.

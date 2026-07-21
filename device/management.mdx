@@ -1,0 +1,68 @@
+---
+title: "Device Management"
+description: "Configuration, time sync, location, passwords, and reboot"
+---
+
+## Persistent capture configuration
+
+The device boots with a stored resolution/fps/codec configuration.
+`set_configuration()` persists a new one — applied in `IDLE` only, so it never
+disrupts a live session:
+
+```cpp
+dev.set_configuration(1920, 1200, 30, COMPRESSION_MODE::H265);
+```
+
+Valid values come from the device's enabled capability menu:
+
+```cpp
+Capabilities caps = dev.get_device_information().capabilities;
+for (const SupportedMode& m : caps.modes)
+    std::printf("%dx%d @ %d\n", m.resolution.width, m.resolution.height, m.fps);
+```
+
+A rejected value reports `INVALID_RESOLUTION`, `INVALID_FPS`, or
+`UNSUPPORTED_COMPRESSION`. Note this is the *boot* configuration — a session's
+own configuration is set per-`open()` via `InitParameters`.
+
+## Time
+
+`open()` aligns the device clock to the host automatically. Re-align a
+long-running session or read the device clock directly:
+
+```cpp
+dev.sync_time();
+Timestamp t;
+dev.get_device_time(t);   // device CLOCK_REALTIME, ns since epoch
+```
+
+## Location
+
+The device stamps recordings with a `LocationFix`. Persist a location (until
+changed) or read the effective one:
+
+```cpp
+dev.set_location(37.7749, -122.4194);   // lat, lon [, altitude, covariance]
+Location loc;
+dev.get_location(loc);
+```
+
+## BLE password
+
+BLE control is password-gated (factory default `123456`). Rekey it:
+
+```cpp
+dev.set_ble_password("123456", "new-password");   // over BLE: old required
+dev.set_ble_password("",       "new-password");   // over USB: physical access resets
+```
+
+## State and reboot
+
+```cpp
+DEVICE_STATE s = dev.get_state();   // CLOSED / IDLE / STREAMING / UPDATING
+dev.reboot();                       // device reboots; handle closes
+```
+
+`get_state()` never blocks — it returns the last known state. Illegal calls
+for the current state return `INVALID_FUNCTION_CALL` without touching the
+device.

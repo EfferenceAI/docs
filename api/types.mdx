@@ -1,0 +1,113 @@
+---
+title: "Core Types"
+description: "The data structures returned by the device"
+---
+
+## Mat
+
+An owned image buffer filled by `retrieve_image()`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `frame_id` | `uint32_t` | monotonic frame counter |
+| `timestamp` | `Timestamp` | capture time, device clock |
+| `resolution` | `Resolution` | width × height |
+| `type` | `MAT_TYPE` | element layout (`U8_C1/C3/C4`, `NV12`) |
+| `view` | `VIEW` | the view it was retrieved as |
+| `step` | `int` | bytes per row (first plane) |
+| `data` | `std::vector<uint8_t>` | pixel buffer (owned) |
+
+## ImuSample / SensorsData
+
+```cpp
+struct ImuSample {
+    Timestamp timestamp;                 // device clock
+    uint64_t  sequence;                  // monotonic; gaps = wire loss
+    float     acceleration[3];           // m/s^2
+    float     angular_velocity[3];       // rad/s
+    float     temperature_c;
+};
+
+struct SensorsData {                     // filled by retrieve_imu()
+    std::vector<ImuSample> samples;      // all samples since the last drain
+    uint64_t     dropped;                // host ring overruns
+    MOTION_STATE motion_state;           // STATIC / MOVING / FALLING
+};
+```
+
+## Timestamp
+
+Nanoseconds since epoch with unit accessors: `nanoseconds()`,
+`microseconds()`, `milliseconds()`, `seconds()`.
+
+## DeviceInformation
+
+Cached at `open()`, returned by `get_device_information()`:
+
+```cpp
+struct DeviceInformation {
+    std::string  serial;             // full serial (may be non-numeric)
+    unsigned int serial_number;      // numeric form; 0 when not numeric
+    MODEL        model;
+    unsigned int firmware_version;
+    INPUT_TYPE   input_type;
+    CameraConfiguration  camera_configuration;    // resolution, fps, codec, calibration
+    SensorsConfiguration sensors_configuration;   // IMU params + extrinsics
+    WirelessConfiguration wireless;               // WiFi/BT state
+    Capabilities         capabilities;            // enabled modes + codecs
+};
+```
+
+- `CameraConfiguration::calibration` — double-sphere intrinsics
+  (`fx fy cx cy xi alpha`).
+- `SensorsConfiguration::camera_imu_transform` — 4×4 camera→IMU extrinsic.
+- `Capabilities::modes` — the selectable resolution/fps menu; values outside
+  it are rejected at `open()`.
+
+## Status structs
+
+```cpp
+struct HealthStatus {
+    CAMERA_STATE camera;             // live availability
+    SENSOR_STATE imu;
+    bool         passed;             // last sweep: no probe failed
+    bool         deep;               // stress tier included
+    std::vector<HealthCheck> checks; // per-probe {name, passed, detail}
+    Timestamp    timestamp;
+};
+
+struct RecordingStatus {
+    std::string      name;
+    RECORDING_TARGET target;
+    bool     recording;
+    uint64_t bytes, frames, duration_ms;
+    uint64_t storage_free_bytes, storage_total_bytes;
+    UPLOAD_STATE upload;             // + upload_bytes_sent / _total
+    ERROR_CODE   last_error;
+};
+
+struct UpdateStatus {
+    bool         active;
+    UPDATE_STATE state;              // DOWNLOADING / VERIFYING / READY_TO_APPLY / APPLYING
+    int          progress;           // 0-100, -1 indeterminate
+    std::string  message;
+    uint32_t     running_version_int, target_version_int;
+    ERROR_CODE   last_error;
+};
+```
+
+## DeviceProperties
+
+One row of `get_device_list()`:
+
+| Field | Meaning |
+|---|---|
+| `input_type` | `USB` or `STREAM` (BLE) |
+| `device_id` | index for `InitParameters::device_id` |
+| `serial` | USB descriptor serial |
+| `ble_address` / `ble_name` | BLE identity (STREAM rows) |
+
+## Location
+
+`latitude`, `longitude`, `altitude`, `covariance_diag` — written into each
+recording's `LocationFix`.

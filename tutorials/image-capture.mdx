@@ -1,0 +1,59 @@
+---
+title: "Tutorial 3 — Image Capture"
+description: "Grab frames and retrieve them as RGBA"
+---
+
+```cpp
+#include <cstdio>
+#include <ef/Device.hpp>
+
+using namespace ef;
+
+int main() {
+    InitParameters init;
+    init.resolution  = RESOLUTION::AUTO;      // device native
+    init.fps         = 30;
+    init.compression = COMPRESSION_MODE::H265;
+
+    Device dev;
+    if (dev.open(init) != ERROR_CODE::SUCCESS) return 1;
+
+    Mat image;
+    int grabbed = 0;
+    while (grabbed < 100) {
+        ERROR_CODE ec = dev.grab();
+        if (ec == ERROR_CODE::GRAB_TIMEOUT)    continue;   // no frame yet
+        if (ec == ERROR_CODE::CORRUPTED_FRAME) continue;   // lossy frame dropped
+        if (ec != ERROR_CODE::SUCCESS)         break;      // real fault
+
+        if (dev.retrieve_image(image, VIEW::RGBA) == ERROR_CODE::SUCCESS) {
+            grabbed++;
+            std::printf("frame %u  %dx%d  ts=%llu\n",
+                        image.frame_id,
+                        image.resolution.width, image.resolution.height,
+                        (unsigned long long)image.timestamp.nanoseconds());
+        }
+    }
+
+    dev.close();
+    return 0;
+}
+```
+
+## Walkthrough
+
+- The three-way `grab()` handling is the pattern to copy everywhere:
+  `GRAB_TIMEOUT` and `CORRUPTED_FRAME` are non-fatal (loop); anything else
+  non-`SUCCESS` ends the session.
+- `retrieve_image()` converts the wire frame (NV12 or H.265) to the requested
+  `VIEW`. The `Mat` owns its buffer — `image.data` stays valid until the next
+  retrieve into the same `Mat`.
+- Ask for `VIEW::BGR` and wrap in a `cv::Mat` for OpenCV processing:
+
+```cpp
+dev.retrieve_image(image, VIEW::BGR);
+cv::Mat frame(image.resolution.height, image.resolution.width,
+              CV_8UC3, image.data.data(), image.step);
+```
+
+Ships as `examples/wired/03_data_stream.cpp`.

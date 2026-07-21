@@ -1,0 +1,62 @@
+---
+title: "IMU"
+description: "Accelerometer and gyroscope data — retrieval, timestamps, and motion state"
+---
+
+The M1 streams IMU samples alongside video on the same transport.
+`retrieve_imu()` drains every sample that arrived since the previous `grab()`
+— at typical rates that is several samples per video frame, none dropped.
+
+```cpp
+SensorsData sensors;
+while (dev.grab() == ERROR_CODE::SUCCESS) {
+    if (dev.retrieve_imu(sensors) != ERROR_CODE::SUCCESS) continue;
+
+    for (const ImuSample& s : sensors.samples) {
+        // s.acceleration[3]      m/s^2
+        // s.angular_velocity[3]  rad/s
+        // s.temperature_c        die temperature
+        // s.timestamp            device clock, ns
+        // s.sequence             monotonic; gaps = wire loss
+    }
+    if (sensors.motion_state == MOTION_STATE::FALLING) {
+        // free-fall detected
+    }
+}
+```
+
+## SensorsData
+
+| Field | Meaning |
+|---|---|
+| `samples` | every `ImuSample` since the last drain, in order |
+| `dropped` | ring-overrun count (host consumed too slowly) |
+| `motion_state` | `STATIC` / `MOVING` / `FALLING`, classified on-device |
+
+## Timestamps and ordering
+
+Sample timestamps are on the device clock, the same timebase as
+`Mat::timestamp` — so associating IMU windows to frames is a direct
+comparison. `sequence` increments per sample; a gap means samples were lost
+in transit (lossy UDP) or overrun (`dropped`).
+
+`retrieve_imu(data, TIME_REFERENCE::IMAGE)` is the default and returns the
+batch aligned to the grabbed frame. Samples arriving between grabs are never
+lost — they queue and drain on the next call.
+
+## Sensor configuration
+
+Noise densities and the camera↔IMU extrinsic transform ship on the device and
+are cached at `open()`:
+
+```cpp
+SensorsConfiguration sc = dev.get_device_information().sensors_configuration;
+// sc.accelerometer.noise_density
+// sc.gyroscope.noise_density
+// sc.camera_imu_transform   (4x4, camera frame -> IMU frame)
+```
+
+<Note>
+Disable the IMU with `InitParameters::enable_imu = false` if you only need
+video — it removes the IMU packets from the wire entirely.
+</Note>

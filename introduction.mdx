@@ -1,0 +1,61 @@
+---
+title: "Introduction"
+description: "The Efference SDK — live video and IMU from the M1 sensor, over USB, Bluetooth LE, or WiFi"
+---
+
+The Efference SDK is the host-side C++ library for the **Efference M1** sensor.
+A single `ef::Device` handle exposes everything the device can do:
+
+- **Data plane** — live video + IMU with a ZED-style `open` / `grab` /
+  `retrieve` loop, over USB or WiFi/UDP, plus MCAP file replay.
+- **Control plane** — identity, configuration, health checks, WiFi
+  provisioning, on-device recording, uploads, and firmware updates, over USB
+  or Bluetooth LE.
+
+```cpp
+#include <ef/Device.hpp>
+
+ef::Device dev;
+if (dev.open() != ef::ERROR_CODE::SUCCESS) return 1;
+
+ef::Mat image;
+ef::SensorsData sensors;
+while (true) {
+    if (dev.grab() == ef::ERROR_CODE::SUCCESS) {
+        dev.retrieve_image(image, ef::VIEW::RGBA);
+        dev.retrieve_imu(sensors);
+    }
+}
+```
+
+## Choose your path
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/get-started/installation">
+    Build the SDK on Linux or Jetson in one command.
+  </Card>
+  <Card title="Wired Quickstart" icon="usb" href="/get-started/quickstart-wired">
+    Plug in over USB — device info and a health check in five minutes.
+  </Card>
+  <Card title="Wireless Quickstart" icon="wifi" href="/get-started/quickstart-wireless">
+    Connect over Bluetooth LE and stream video over WiFi.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/device">
+    Every method on ef::Device, with parameters and error codes.
+  </Card>
+</CardGroup>
+
+## Transports
+
+| Transport | Control | Video + IMU | How |
+|---|---|---|---|
+| **USB** | ✓ | ✓ live isochronous | default; `open()` |
+| **Bluetooth LE** | ✓ (password-gated) | — control only | `InitParameters::input_type = STREAM` |
+| **WiFi / UDP** | via BLE | ✓ live UDP | BLE + `InitParameters::udp_host` |
+| **MCAP replay** | — | ✓ from file | `InitParameters::input_type = MCAP` |
+
+## Requirements
+
+Linux (x86_64 or Jetson/arm64) · C++17 · CMake ≥ 3.16 · `libusb-1.0`.
+FFmpeg, SDL2, and GLib are optional (H.264/H.265 decode, the live viewer, and
+Bluetooth LE respectively).

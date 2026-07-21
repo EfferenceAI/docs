@@ -1,0 +1,49 @@
+---
+title: "WiFi Provisioning"
+description: "Put the M1 on a network for UDP streaming and uploads"
+---
+
+The device needs WiFi for two things: pushing the live stream to your host
+over UDP, and uploading recordings to the cloud. Provisioning happens over
+the control link — usually Bluetooth LE, since a device on USB rarely needs
+WiFi.
+
+## Provision a network
+
+```cpp
+dev.wifi_add("MyNetwork", "MyPassphrase", "US");
+```
+
+The third argument is the ISO regulatory-domain country code; setting it
+unlocks 5 GHz channels. Saved networks persist on the device.
+
+```cpp
+dev.wifi_remove("MyNetwork");     // forget
+dev.wifi_select("MyNetwork");     // prefer among saved networks
+```
+
+## Read the connection state
+
+WiFi status lives in the wireless block of the device information and
+refreshes on each `get_device_information()` after a wifi call:
+
+```cpp
+WirelessConfiguration w = dev.get_device_information().wireless;
+// w.wifi_connected, w.wifi_ssid, w.wifi_ip_address
+// w.wifi_rssi (dBm), w.internet_reachable
+// w.saved_networks
+```
+
+## From the CLI
+
+```sh
+ef --ble AA:BB:CC:DD:EE:FF wifi add MyNetwork MyPassphrase US
+ef --ble AA:BB:CC:DD:EE:FF wifi status
+ef --ble AA:BB:CC:DD:EE:FF wifi remove MyNetwork
+```
+
+<Note>
+Operations that require connectivity — `upload_recording()`, update downloads
+— fail with `WIFI_NOT_CONNECTED` when the device is not associated. Check
+`wireless.wifi_connected` first for a better user experience.
+</Note>

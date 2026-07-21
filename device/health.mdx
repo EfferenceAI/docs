@@ -1,0 +1,51 @@
+---
+title: "Health Check"
+description: "Run the on-device diagnostic sweep and read the results"
+---
+
+The health check runs **on the device** and probes each subsystem: IMU,
+camera, eMMC, WiFi/BT, USB, CPU, and the device services. A deep sweep adds a
+~2 minute performance/stress tier (eMMC throughput, memory bandwidth,
+thermals).
+
+```cpp
+HealthStatus health;
+ERROR_CODE ec = dev.health_check(health);          // quick sweep (blocks)
+// ERROR_CODE ec = dev.health_check(health, true); // + deep stress tier
+
+if (ec == ERROR_CODE::SUCCESS) {
+    std::printf("overall: %s\n", health.passed ? "PASS" : "FAIL");
+    for (const HealthCheck& c : health.checks)
+        std::printf("  %-16s %s  %s\n", c.name.c_str(),
+                    c.passed ? "PASS" : "FAIL", c.detail.c_str());
+}
+```
+
+`health_check()` blocks until the sweep completes and fills:
+
+| Field | Meaning |
+|---|---|
+| `camera` / `imu` | live availability right now |
+| `passed` | no probe failed |
+| `deep` | the stress tier was included |
+| `checks` | per-probe name, verdict, and detail string |
+| `timestamp` | when the sweep completed |
+
+The last completed sweep stays cached — `get_health_status()` returns it
+without touching the device.
+
+## From the CLI
+
+```sh
+ef health
+ef health --deep
+```
+
+Works over USB and Bluetooth LE — a health check needs no data plane, so a
+control-only BLE session is enough.
+
+<Note>
+The sweep reports subsystem **presence and function**. It does not currently
+grade data quality (frame jitter, image content, IMU noise floor) — validate
+those host-side from the live stream if your application depends on them.
+</Note>

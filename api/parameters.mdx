@@ -1,0 +1,62 @@
+---
+title: "Parameters"
+description: "InitParameters, RuntimeParameters, RecordingParameters"
+---
+
+## InitParameters
+
+Passed to `open()`. Transport selection plus the session configuration —
+validated against the device's advertised capabilities; an unsupported
+combination fails with `INVALID_RESOLUTION` / `INVALID_FPS` /
+`UNSUPPORTED_COMPRESSION`.
+
+### Transport
+
+| Field | Default | Meaning |
+|---|---|---|
+| `input_type` | `USB` | `USB`, `STREAM` (BLE control), or `MCAP` (replay) |
+| `ble_address` | — | BLE MAC, required for `STREAM` |
+| `mcap_path` | — | file path, required for `MCAP` |
+| `device_id` | `0` | which M1 when several are on USB |
+| `udp_host` | `""` | `STREAM` only: this host's IP — device pushes video+IMU here. Empty = control-only session |
+| `udp_port` | `5005` | UDP stream port |
+| `ble_password` | `"123456"` | BLE control password |
+
+### Session
+
+| Field | Default | Meaning |
+|---|---|---|
+| `resolution` | `AUTO` | capture geometry (`AUTO` = device native) |
+| `fps` | `30` | frame rate |
+| `compression` | `H265` | wire codec (see `COMPRESSION_MODE`) |
+| `flip_mode` | `OFF` | 180° host-side rotation (`AUTO` = decide from IMU) |
+| `enable_imu` | `true` | include IMU packets on the wire |
+| `coordinate_system` | `IMAGE` | convention for IMU/pose data |
+
+### Grab behavior
+
+| Field | Default | Meaning |
+|---|---|---|
+| `grab_timeout_ms` | `1000` | max block in `grab()` |
+| `drop_partial_frames` | `true` | silently discard lossy frames |
+| `verbose` | `0` | `1` = connection trace on stderr |
+
+## RuntimeParameters
+
+Passed to `grab()`, per call:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `timeout_ms` | `0` | override `grab_timeout_ms` (`0` = use init value) |
+| `return_partial` | `false` | deliver lossy frames as `CORRUPTED_FRAME` instead of dropping |
+
+## RecordingParameters
+
+Passed to `enable_recording()`:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `target` | `HOST_FILE` | `HOST_FILE` (local `.mcap`) or `DEVICE_LOCAL` (on-device) |
+| `path` | — | HOST_FILE: output `.mcap` path |
+| `name` | `""` | DEVICE_LOCAL: session name (`""` = device picks) |
+| `has_location` / `location` | unset | per-session `LocationFix` override |
