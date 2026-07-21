@@ -5,7 +5,8 @@ description: "Build the Efference SDK on Linux or NVIDIA Jetson"
 
 ## Requirements
 
-- Linux (Ubuntu 20.04+, Debian, or JetPack on NVIDIA Jetson)
+- Linux (Ubuntu 22.04/24.04, Debian, or JetPack on NVIDIA Jetson — any
+  apt-based distro installs dependencies automatically)
 - A C++17 compiler, CMake ≥ 3.16, pkg-config
 - `libusb-1.0` — the only required dependency
 
@@ -16,14 +17,14 @@ build script:
 |---|---|
 | H.264/H.265 decode in `retrieve_image()` | `libavcodec-dev libavutil-dev libswscale-dev` |
 | Bluetooth LE control | `libglib2.0-dev libssl-dev` |
-| `efference-viewer` live window | `libsdl2-dev` + FFmpeg |
+| `efference-viewer` + the OpenCV examples | `libopencv-dev` + FFmpeg |
 
 ## Build
 
 <Steps>
   <Step title="Clone">
     ```sh
-    git clone https://github.com/efference/efference.git
+    git clone https://github.com/efferenceai/efference.git
     cd efference
     ```
   </Step>
@@ -63,8 +64,9 @@ cmake --build build -j$(nproc)
 ```
 
 Optional pieces degrade gracefully: without FFmpeg only the RAW/NV12 path is
-available; without GLib/OpenSSL the SDK is USB-only; without SDL2 the viewer
-is skipped. CMake prints what was enabled at configure time.
+available; without GLib/OpenSSL the SDK is USB-only; without OpenCV the
+viewer and the OpenCV examples are skipped. CMake prints what was enabled at
+configure time.
 
 ## Linking against the SDK
 

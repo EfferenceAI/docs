@@ -37,9 +37,14 @@ The differences from a live session:
 - Timestamps are the original capture timestamps from the recording.
 
 Both host-file and device-local recordings replay identically — they share
-one schema. To convert a session to a standard video file, use the bundled
-script:
+one schema. Recordings also open directly in Foxglove. To convert a session
+to a standard video file, use the bundled script:
 
 ```sh
 python3 sdk/linux/tools/mcap_to_video.py session.mcap session.mp4
 ```
+
+<Note>
+If HEVC won't play in Foxglove on Linux, record `h264` instead, or transcode
+with `mcap_to_video.py`.
+</Note>

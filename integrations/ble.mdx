@@ -1,0 +1,109 @@
+---
+title: "BLE Protocol"
+description: "Talk to the M1 over Bluetooth LE from your own app — GATT service, framing, and auth"
+---
+
+This page is for building your own app (mobile or desktop) that talks to the
+M1 over Bluetooth LE **without** the C++ SDK. On Linux with C++, skip all of
+this and use `ef::Device` with a BLE connection — the SDK's
+`sdk/linux/src/ble_connection.cpp` is the reference implementation of
+everything below.
+
+BLE is the **control plane only**: everything the `ef` CLI does — device
+info, capture config, recordings, WiFi, firmware updates, chunked recording
+download — but no live video or IMU. For live data wirelessly, use BLE for
+control and have the device push video to your host over WiFi/UDP.
+
+The protocol is request/response: write a request frame, receive a response
+frame with the same correlation id.
+
+## What you need
+
+One file: the protocol schema, `proto/ef.proto`. Generate bindings with
+`protoc` (Swift, Kotlin, Python, JavaScript, …) or with nanopb for embedded
+(`proto/ef.options` is only needed for nanopb). The schema defines
+`ef.v1.Request` and `ef.v1.Response` — the messages you serialize into the
+frames below. Nothing else is required on your side.
+
+## GATT service
+
+The device advertises the name **`Efference M1`** and this service:
+
+| Role | UUID |
+|---|---|
+| Service | `ef000100-9e21-4046-96b4-4d11bf968452` |
+| Command (write) | `ef000101-9e21-4046-96b4-4d11bf968452` |
+| Response (notify) | `ef000102-9e21-4046-96b4-4d11bf968452` |
+| Version (read) | `9529fe05-41ea-4524-b69f-83fec701236d` |
+
+Your app writes request frames to **Command** and subscribes to notifications
+on **Response** — that's the whole protocol. The **Version** characteristic
+is a plain GATT read returning the firmware `VERSION_INT` (e.g. `10001` for
+v1.0.1) without protobuf, so it works as a safe version check before anything
+else. For everything richer, send a `GetDeviceInformation` request.
+
+## Wire frame
+
+Every message is a 12-byte little-endian header followed by a protobuf
+payload:
+
+| Offset | Size | Field | Value |
+|---|---|---|---|
+| 0 | 1 | magic | `0xEF` |
+| 1 | 1 | version | `1` |
+| 2 | 1 | type | `1` REQUEST (sent); replies are `2` RESPONSE or `3` ERROR |
+| 3 | 1 | flags | `0` (reserved) |
+| 4 | 4 | corr_id | uint32 you choose; the reply echoes it |
+| 8 | 4 | len | payload length in bytes |
+| 12 | len | payload | `ef.v1.Request` on writes, `ef.v1.Response` on notifications |
+
+Use a new `corr_id` per request and match replies to it. The payload has a
+hard cap of 8192 bytes.
+
+## Chunking
+
+A frame is usually bigger than one BLE packet, so both directions are
+chunked:
+
+- **Writing** — split the frame to fit your negotiated ATT MTU and write the
+  pieces in order to Command (the SDK writes up to 512 bytes per write).
+- **Reading** — the response arrives as several notifications. Accumulate
+  bytes until you have the 12-byte header plus `len` payload bytes, then
+  parse. Never assume one notification is one message.
+
+Send one request at a time and wait for its response; the reference host uses
+a single in-flight request with a 5 second timeout.
+
+## Authentication
+
+BLE control is password-gated (factory default `123456`). The password never
+crosses the air — you prove it with a challenge/response:
+
+1. Send `GetAuthChallenge`; the response is
+   `AuthChallenge { nonce (32 bytes), salt, iters }`.
+2. Derive `key = PBKDF2-HMAC-SHA256(password, salt, iters)` (32-byte key).
+3. Compute `response = HMAC-SHA256(key, nonce)` and send
+   `Authenticate { response }`.
+
+The device provides `salt` and `iters` — don't hardcode them. Before
+authenticating, gated verbs return an ERROR with code `AUTH_REQUIRED`; a
+wrong password is `AUTH_FAILED`. Pairing is LE Secure Connections, Just
+Works. Rekey with `SetBlePassword { old_password, new_password }`.
+
+## Command set
+
+The full set is the `oneof body` in `ef.v1.Request` (see `proto/ef.proto`).
+The common ones:
+
+- `GetDeviceInformation`, `GetState`, `GetStorage`
+- `Configure` — capture config and codec
+- `StartRecording`, `StopRecording`, `ListRecordings`, `DeleteRecording`
+- `DownloadRecording` — pull a recording off in chunks (`RecordingChunk`
+  replies with bytes at an offset; loop until `eof`). This is how you get
+  data off over BLE, since there is no video stream over BLE.
+- `WifiScan`, `WifiAdd`, `WifiList`, `WifiStatus`
+- `OtaCheck`, `OtaDownload`, `OtaApply`
+- `StartHealthCheck`, `GetHealthStatus`
+
+Each reply is an `ef.v1.Response` carrying a `code` (the `ErrorCode` enum)
+and, on success, a typed body (for example `DeviceInformation`).

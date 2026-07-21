@@ -5,17 +5,24 @@ description: "The data structures returned by the device"
 
 ## Mat
 
-An owned image buffer filled by `retrieve_image()`:
+An owned image buffer filled by `retrieve_image()`. The fields are private —
+the SDK is the sole producer — and consumers read through accessors:
 
-| Field | Type | Meaning |
+| Accessor | Returns | Meaning |
 |---|---|---|
-| `frame_id` | `uint32_t` | monotonic frame counter |
-| `timestamp` | `Timestamp` | capture time, device clock |
-| `resolution` | `Resolution` | width × height |
-| `type` | `MAT_TYPE` | element layout (`U8_C1/C3/C4`, `NV12`) |
-| `view` | `VIEW` | the view it was retrieved as |
-| `step` | `int` | bytes per row (first plane) |
-| `data` | `std::vector<uint8_t>` | pixel buffer (owned) |
+| `getPtr()` | `uint8_t*` | raw pixel bytes (owning buffer) |
+| `getFrameId()` | `uint32_t` | monotonic frame counter |
+| `getTimestamp()` | `Timestamp` | capture time, device clock |
+| `getWidth()` / `getHeight()` / `getResolution()` | `int` / `Resolution` | frame geometry |
+| `getDataType()` | `MAT_TYPE` | element layout (`U8_C1/C3/C4`, `NV12`) |
+| `getView()` | `VIEW` | the view it was retrieved as |
+| `getStep()` | `int` | bytes per row (first plane) |
+| `getSizeInBytes()` | `size_t` | total buffer size |
+| `isInit()` | `bool` | whether a buffer is allocated |
+
+Copies and assignment are deep. `alloc(w, h, type)` / `free()` manage a
+standalone buffer, and `copyTo(dst)` deep-copies pixels; `MEM::GPU` is not
+supported and returns `UNSUPPORTED`.
 
 ## ImuSample / SensorsData
 

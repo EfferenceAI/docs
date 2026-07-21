@@ -57,10 +57,13 @@ int main() {
     if (dev.open(init) != ERROR_CODE::SUCCESS) return 1;
 
     Mat image;
-    while (dev.grab() == ERROR_CODE::SUCCESS ||
-           dev.grab() == ERROR_CODE::GRAB_TIMEOUT) {
+    while (true) {
+        ERROR_CODE ec = dev.grab();
+        if (ec == ERROR_CODE::GRAB_TIMEOUT) continue;   // no frame yet — keep looping
+        if (ec != ERROR_CODE::SUCCESS)      break;      // transport fault
+
         if (dev.retrieve_image(image, VIEW::RGBA) == ERROR_CODE::SUCCESS) {
-            // 1920x1200 RGBA in image.data
+            // 1920x1200 RGBA pixels at image.getPtr()
         }
     }
     dev.close();

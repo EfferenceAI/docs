@@ -43,6 +43,7 @@ returns the last known `DEVICE_STATE` and never blocks.
 
 ```cpp
 ERROR_CODE grab(RuntimeParameters params = RuntimeParameters());
+RuntimeParameters get_runtime_parameters() const;
 ```
 Block until the next frame is assembled (at most `grab_timeout_ms`).
 Returns `SUCCESS`, `GRAB_TIMEOUT` (non-fatal, loop), `CORRUPTED_FRAME`

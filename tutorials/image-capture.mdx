@@ -29,9 +29,9 @@ int main() {
         if (dev.retrieve_image(image, VIEW::RGBA) == ERROR_CODE::SUCCESS) {
             grabbed++;
             std::printf("frame %u  %dx%d  ts=%llu\n",
-                        image.frame_id,
-                        image.resolution.width, image.resolution.height,
-                        (unsigned long long)image.timestamp.nanoseconds());
+                        image.getFrameId(),
+                        image.getWidth(), image.getHeight(),
+                        (unsigned long long)image.getTimestamp().nanoseconds());
         }
     }
 
@@ -46,14 +46,16 @@ int main() {
   `GRAB_TIMEOUT` and `CORRUPTED_FRAME` are non-fatal (loop); anything else
   non-`SUCCESS` ends the session.
 - `retrieve_image()` converts the wire frame (NV12 or H.265) to the requested
-  `VIEW`. The `Mat` owns its buffer — `image.data` stays valid until the next
-  retrieve into the same `Mat`.
-- Ask for `VIEW::BGR` and wrap in a `cv::Mat` for OpenCV processing:
+  `VIEW`. The `Mat` owns its buffer — `image.getPtr()` stays valid until the
+  next retrieve into the same `Mat`.
+- Ask for `VIEW::BGR` and hand the frame to OpenCV zero-copy with the bundled
+  `<ef/opencv.hpp>` helper:
 
 ```cpp
+#include <ef/opencv.hpp>
+
 dev.retrieve_image(image, VIEW::BGR);
-cv::Mat frame(image.resolution.height, image.resolution.width,
-              CV_8UC3, image.data.data(), image.step);
+cv::Mat frame = ef::toCvMat(image);   // zero-copy view of the same pixels
 ```
 
 Ships as `examples/wired/03_data_stream.cpp`.

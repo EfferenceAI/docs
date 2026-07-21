@@ -66,8 +66,10 @@ reports `RECORDING_ALREADY_EXISTS`.
 
 ## Uploading from the device
 
-With WiFi provisioned, the device can push a recording to a pre-signed URL
-directly — no host in the data path:
+With WiFi provisioned, the device can push a recording to a URL directly —
+no host in the data path. The URL is simply where the device PUTs the whole
+file: a pre-signed cloud URL (for example S3) or a plain URL to your own
+ingest endpoint, so the device needs no credentials of its own:
 
 ```cpp
 dev.upload_recording("run_42", "https://bucket.s3.amazonaws.com/...");

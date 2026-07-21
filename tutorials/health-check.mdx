@@ -36,7 +36,7 @@ int main() {
 ## Walkthrough
 
 - `health_check(out)` runs the quick sweep; `health_check(out, true)` adds
-  the ~2 minute stress tier (eMMC throughput, memory bandwidth, thermals) —
+  the ~2 minute stress tier (memory, CPU, thermals, and sensor sync) —
   worth running on newly received or suspect units.
 - Distinguish the two failure modes: a non-`SUCCESS` return means the sweep
   *could not run* (transport problem); `health.passed == false` means it ran

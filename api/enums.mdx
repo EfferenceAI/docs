@@ -53,7 +53,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 ### 80–99 · Streaming & recording
 | Value | Meaning |
 |---|---|
-| `CORRUPTED_FRAME` | frame incomplete or failed to decode |
+| `CORRUPTED_FRAME` | lossy/invalid frame — delivered only with `RuntimeParameters::return_partial`, otherwise dropped |
 | `SESSION_RECORDING_ERROR` | recording failed |
 | `END_OF_BUFFER` | MCAP replay exhausted |
 | `GRAB_TIMEOUT` | no frame within `grab_timeout_ms` — non-fatal, keep looping |

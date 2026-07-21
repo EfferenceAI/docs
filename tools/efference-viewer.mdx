@@ -3,9 +3,9 @@ title: "efference-viewer — Live Viewer"
 description: "Decoded video window with live IMU readout"
 ---
 
-`efference-viewer` opens an SDL window with the decoded stream. The window
-title shows the live frame counter and current IMU values (accel m/s², gyro
-rad/s), echoed to the console once per second.
+`efference-viewer` opens an OpenCV window with the decoded stream. A status
+bar above the frame shows the live frame counter and current IMU values
+(accel m/s², gyro rad/s), echoed to the console once per second.
 
 ```
 efference-viewer [--codec raw|h264|h264hq|h265|h265hq]
@@ -18,7 +18,7 @@ efference-viewer [--codec raw|h264|h264hq|h265|h265hq]
   BLE carries control, the device pushes video to your IP over WiFi/UDP.
 - **Quit:** `Q`, `Esc`, window close, or Ctrl-C.
 
-Requires the SDK built with SDL2 + FFmpeg (both installed by `./build.sh`).
+Requires the SDK built with OpenCV + FFmpeg (both installed by `./build.sh`).
 CMake skips this tool if either is missing.
 
 <Note>

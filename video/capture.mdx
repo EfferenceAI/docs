@@ -25,9 +25,9 @@ while (true) {
     if (ec != ERROR_CODE::SUCCESS)         break;     // transport fault
 
     dev.retrieve_image(image, VIEW::RGBA);
-    // image.data — owned pixel buffer
-    // image.timestamp — capture time, device clock
-    // image.frame_id — monotonic counter
+    // image.getPtr()       — owned pixel buffer
+    // image.getTimestamp() — capture time, device clock
+    // image.getFrameId()   — monotonic counter
 }
 dev.close();
 ```
@@ -48,13 +48,18 @@ Everything else non-`SUCCESS` means the session is in trouble.
 | `GRAY` | single channel | feature tracking |
 
 Any view except `NV12` requires the SDK to be built with FFmpeg (color
-conversion runs through swscale). Wrapping the result for OpenCV is zero-copy:
+conversion runs through swscale). Wrapping the result for OpenCV is zero-copy
+via the bundled `<ef/opencv.hpp>` header:
 
 ```cpp
-dev.retrieve_image(image, VIEW::BGR);
-cv::Mat frame(image.resolution.height, image.resolution.width,
-              CV_8UC3, image.data.data(), image.step);
+#include <ef/opencv.hpp>
+
+dev.retrieve_image(image, VIEW::BGR);   // BGR = OpenCV's native channel order
+cv::Mat frame = ef::toCvMat(image);     // zero-copy view, no conversion
 ```
+
+See [OpenCV integration](/integrations/opencv) for lifetime rules and the
+NV12 case.
 
 ## Compression modes
 
@@ -83,6 +88,6 @@ The flip applies to retrieved images only, never to on-device recordings.
 
 ## Timestamps
 
-`Mat::timestamp` is the capture time on the **device clock**, which `open()`
+`Mat::getTimestamp()` is the capture time on the **device clock**, which `open()`
 aligns to the host clock (`sync_time()`). `dev.get_timestamp(TIME_REFERENCE::CURRENT)`
 returns host wall time for latency measurements.

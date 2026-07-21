@@ -41,12 +41,14 @@ ef health [--deep]        # on-device sweep; --deep adds the stress tier
 ### Recording
 
 ```sh
-ef record start [name]    # device-local recording (survives disconnect)
+ef record start [name] [--location LAT,LON[,ALT]]
+                          # device-local recording (survives disconnect);
+                          # --location overrides just this recording
 ef record stop
 ef record status [name]
 ef record list
 ef record delete <name>
-ef download <name> [dest] # pull over USB/BLE
+ef download <name> [dest] # pull over USB/BLE (default <name>.mcap)
 ef storage                # free/total on the recording store
 ```
 
@@ -70,9 +72,13 @@ ef abort-update
 ```sh
 ef wifi add <ssid> <psk> [country]
 ef wifi remove <ssid> | select <ssid> | status
+ef wifi list                       # saved networks (marks the connected one)
 ef set-password <new>              # rekey BLE password (over USB)
 ef set-password <old> <new>        # rekey over BLE
-ef sync-time
+ef sync-time                       # set the device clock from the host
+ef time                            # read the device wall clock
+ef location                        # read the device's current location
+ef location set <lat> <lon> [alt]  # persist the device location
 ef reboot
 ```
 
