@@ -1,0 +1,76 @@
+---
+title: "Home"
+description: "Developer documentation for Efference devices"
+mode: "center"
+---
+
+<div className="text-center">
+  <img
+    className="block dark:hidden mx-auto"
+    src="/logo/light.png"
+    alt="Efference"
+    style={{ maxWidth: "320px", marginTop: "2rem", marginBottom: "2.5rem" }}
+    noZoom
+  />
+  <img
+    className="hidden dark:block mx-auto"
+    src="/logo/dark.png"
+    alt="Efference"
+    style={{ maxWidth: "320px", marginTop: "2rem", marginBottom: "2.5rem" }}
+    noZoom
+  />
+</div>
+
+Efference devices are purpose-built for data-driven robotics. They can operate
+as standalone devices for distributed data collection or interface with a host
+computer for robot perception applications.
+
+This site provides comprehensive resources for developers using Efference
+devices and integrating them into their own applications.
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="rocket" href="/get-started/installation">
+    Build the SDK in one command and get device info, a health check, and live
+    video in five minutes — wired or fully wireless.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/device">
+    Every method on `ef::Device`, plus the parameter classes, core types, and
+    enums that make up the public API.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={3}>
+  <Card title="Video Capture" icon="video" href="/video/capture">
+    The open / grab / retrieve loop, pixel formats, and compression modes.
+  </Card>
+  <Card title="Sensors" icon="compass" href="/sensors/imu">
+    Accelerometer and gyroscope samples, timestamps, and motion state.
+  </Card>
+  <Card title="Recording & Replay" icon="database" href="/recording/overview">
+    Record to host or device, download or upload sessions, replay MCAP files
+    through the same API.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={3}>
+  <Card title="Device Management" icon="sliders" href="/device/health">
+    Health checks, WiFi provisioning, firmware updates, time sync, and
+    location.
+  </Card>
+  <Card title="Integrations" icon="puzzle-piece" href="/integrations/opencv">
+    Zero-copy OpenCV interop, and the BLE protocol for building your own
+    mobile or desktop apps.
+  </Card>
+  <Card title="Command-Line Tools" icon="terminal" href="/tools/ef">
+    `ef`, `ef-grab`, and `efference-viewer` — control, capture, and view
+    without writing code.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={1}>
+  <Card title="Tutorials" icon="graduation-cap" href="/tutorials/hello-device">
+    Five walkthroughs from opening your first device to recording and
+    replaying a full session — each one ships as a runnable example in the
+    SDK.
+  </Card>
+</CardGroup>

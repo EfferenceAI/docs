@@ -16,15 +16,15 @@
       "dark": "#000000"
     }
   },
-  "css": "styles.css",
+  "css": "style.css",
   "logo": {
     "light": "/logo/light.png",
     "dark": "/logo/dark.png",
     "href": "https://efference.ai"
   },
   "favicon": {
-    "light": "/images/favicon.png",
-    "dark": "/images/favicon.png"
+    "light": "/favicon.png",
+    "dark": "/favicon.png"
   },
   "navbar": {
     "links": [
@@ -40,6 +40,12 @@
   },
   "navigation": {
     "tabs": [
+      {
+        "tab": "Home",
+        "pages": [
+          "index"
+        ]
+      },
       {
         "tab": "Documentation",
         "groups": [
@@ -63,6 +69,13 @@
               "device/wifi",
               "device/update",
               "device/management"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/opencv",
+              "integrations/ble"
             ]
           },
           {
