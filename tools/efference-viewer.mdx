@@ -1,11 +1,10 @@
 ---
-title: "efference-viewer — Live Viewer"
-description: "Decoded video window with live IMU readout"
+title: "efference-viewer"
+description: "View live video and IMU data"
 ---
 
-`efference-viewer` opens an OpenCV window with the decoded stream. A status
-bar above the frame shows the live frame counter and current IMU values
-(accel m/s², gyro rad/s), echoed to the console once per second.
+`efference-viewer` displays decoded video, frame count, acceleration, and
+angular velocity.
 
 ```
 efference-viewer [--codec raw|h264|h264hq|h265|h265hq]
@@ -13,17 +12,12 @@ efference-viewer [--codec raw|h264|h264hq|h265|h265hq]
                  [--flip on|off|auto]
 ```
 
-- **Wired:** just run it — USB is the default.
-- **Wireless:** `efference-viewer --ble AA:BB:CC:DD:EE:FF --udp <your-ip>` —
-  BLE carries control, the device pushes video to your IP over WiFi/UDP.
-- **Quit:** `Q`, `Esc`, window close, or Ctrl-C.
+- **Wired:** run without connection flags; USB is the default.
+- **Wireless:** pass `--ble <MAC> --udp <linux-host-ip>`.
+- **Quit:** press `Q` or `Esc`, close the window, or press Ctrl-C.
 
-Requires the SDK built with OpenCV + FFmpeg (both installed by `./build.sh`).
-CMake skips this tool if either is missing.
+Requires the SDK built with OpenCV + FFmpeg (installed by the first-time
+`./build.sh --deps` command). CMake skips this tool if either is missing.
 
-<Note>
-Brief glitches after packet loss on UDP are expected — the viewer requests a
-fresh keyframe (PLI) and the image heals within a few frames. Persistent
-corruption on USB usually means insufficient bandwidth: check that the device
-enumerated at SuperSpeed (`ef info`).
-</Note>
+For persistent USB corruption, confirm that `ef info` reports a SuperSpeed
+connection.

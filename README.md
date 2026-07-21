@@ -1,6 +1,7 @@
 # Efference SDK Documentation
 
-Documentation site for the [Efference SDK](https://github.com/efference/efference), built with [Mintlify](https://mintlify.com).
+Mintlify documentation for the
+[Efference SDK](https://github.com/EfferenceAI/efference).
 
 ## Local preview
 
@@ -11,14 +12,8 @@ mint dev
 
 Open http://localhost:3000.
 
-## Deploying
-
-Push this repository to GitHub and connect it in the
-[Mintlify dashboard](https://dashboard.mintlify.com) — every push to `main`
-deploys automatically.
-
 ## Structure
 
-- `docs.json` — site config + navigation
-- `*.mdx` — pages, grouped by folder (`get-started/`, `video/`, `sensors/`,
-  `recording/`, `device/`, `tools/`, `tutorials/`, `api/`)
+- `docs.json` — site configuration and navigation
+- `*.mdx` — documentation, examples, and API reference
+- `style.css` — site-wide visual overrides

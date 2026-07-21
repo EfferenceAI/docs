@@ -1,61 +1,45 @@
 ---
 title: "Introduction"
-description: "The Efference SDK — live video and IMU from the M1 sensor, over USB, Bluetooth LE, or WiFi"
 ---
 
-The Efference SDK is the host-side C++ library for the **Efference M1** sensor.
-A single `ef::Device` handle exposes everything the device can do:
+<div className="text-center">
+  <img
+    className="block dark:hidden mx-auto"
+    src="/logo/light.png"
+    alt="Efference"
+    style={{ maxWidth: "320px", marginTop: "2rem", marginBottom: "2.5rem" }}
+    noZoom
+  />
+  <img
+    className="hidden dark:block mx-auto"
+    src="/logo/dark.png"
+    alt="Efference"
+    style={{ maxWidth: "320px", marginTop: "2rem", marginBottom: "2.5rem" }}
+    noZoom
+  />
+</div>
 
-- **Data plane** — live video + IMU with a ZED-style `open` / `grab` /
-  `retrieve` loop, over USB or WiFi/UDP, plus MCAP file replay.
-- **Control plane** — identity, configuration, health checks, WiFi
-  provisioning, on-device recording, uploads, and firmware updates, over USB
-  or Bluetooth LE.
+Efference devices are purpose-built for data-driven robotics. They can operate
+as standalone devices for distributed data collection or interface with a host
+computer for robot perception applications.
 
-```cpp
-#include <ef/Device.hpp>
+This site provides comprehensive resources for developers using Efference
+devices and integrating them into their own applications.
 
-ef::Device dev;
-if (dev.open() != ef::ERROR_CODE::SUCCESS) return 1;
-
-ef::Mat image;
-ef::SensorsData sensors;
-while (true) {
-    if (dev.grab() == ef::ERROR_CODE::SUCCESS) {
-        dev.retrieve_image(image, ef::VIEW::RGBA);
-        dev.retrieve_imu(sensors);
-    }
-}
-```
-
-## Choose your path
+## Sections
 
 <CardGroup cols={2}>
-  <Card title="Installation" icon="download" href="/get-started/installation">
-    Build the SDK on Linux or Jetson in one command.
+  <Card title="Set up a host" icon="rocket" href="/get-started/requirements">
+    Check requirements, then install the Efference SDK on Linux or NVIDIA
+    Jetson.
   </Card>
-  <Card title="Wired Quickstart" icon="usb" href="/get-started/quickstart-wired">
-    Plug in over USB — device info and a health check in five minutes.
+  <Card title="Connect a device" icon="plug" href="/device/connection">
+    Open the M1 over USB or Bluetooth LE (BLE).
   </Card>
-  <Card title="Wireless Quickstart" icon="wifi" href="/get-started/quickstart-wireless">
-    Connect over Bluetooth LE and stream video over WiFi.
+  <Card title="Run an example" icon="code" href="/examples/wired/serial-number">
+    Build a wired or wireless C++ example.
   </Card>
-  <Card title="API Reference" icon="code" href="/api/device">
-    Every method on ef::Device, with parameters and error codes.
+  <Card title="Browse the API" icon="book" href="/api/device">
+    Find `ef::Device` methods, parameters, types, and enums.
   </Card>
 </CardGroup>
-
-## Transports
-
-| Transport | Control | Video + IMU | How |
-|---|---|---|---|
-| **USB** | ✓ | ✓ live isochronous | default; `open()` |
-| **Bluetooth LE** | ✓ (password-gated) | — control only | `InitParameters::input_type = STREAM` |
-| **WiFi / UDP** | via BLE | ✓ live UDP | BLE + `InitParameters::udp_host` |
-| **MCAP replay** | — | ✓ from file | `InitParameters::input_type = MCAP` |
-
-## Requirements
-
-Linux (x86_64 or Jetson/arm64) · C++17 · CMake ≥ 3.16 · `libusb-1.0`.
-FFmpeg, OpenCV, and GLib are optional (H.264/H.265 decode, the live viewer +
-examples, and Bluetooth LE respectively).

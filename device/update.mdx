@@ -1,11 +1,11 @@
 ---
 title: "Firmware Updates"
-description: "Check for, apply, and monitor firmware updates — over the air or sideloaded"
+description: "Check, apply, and monitor firmware updates"
 ---
 
-Firmware ships as a signed `.eff` image with A/B slots on the device — a
-failed update rolls back automatically. Updates apply from `IDLE`; the SDK
-pauses an active streaming session and restores it afterwards.
+Firmware uses signed `.eff` images and A/B slots with rollback. Open the M1
+over USB or Bluetooth LE (BLE), then stop device-local recording and uploads
+before updating.
 
 ## Check and apply
 
@@ -27,10 +27,13 @@ The `url` argument selects the source:
 | `https://...` | explicit server (device downloads over WiFi) |
 | `firmware.eff` (local path) | **sideload** — pushed over USB/BLE, no WiFi needed |
 
-`update()` blocks through download, verify, and apply, reporting progress via
-the callback (`UPDATE_STATE::DOWNLOADING → VERIFYING → READY_TO_APPLY →
-APPLYING`), then reboots the device. Poll asynchronously instead with
-`get_update_status()`, or cancel with `abort_update()`.
+An empty source first calls `check_update()` and returns `DEVICE_UP_TO_DATE`
+when no newer image is available. An explicit URL goes directly to that URL;
+it is not gated by the configured-server check.
+
+`update()` blocks through download, verification, apply, reboot, and
+reconnection. Use the callback or `get_update_status()` for progress, and
+`abort_update()` to request cancellation.
 
 ```cpp
 UpdateStatus st;
@@ -53,3 +56,8 @@ A host-file recording cannot span an update (the device reboots); the SDK
 finalizes the `.mcap` before applying. Device-local recordings must be
 stopped first — the device refuses OTA while recording.
 </Warning>
+
+<Note>
+After a successful reconnect, call `grab()` again to start a new live data
+plane. A firmware update cannot preserve one continuous stream across reboot.
+</Note>

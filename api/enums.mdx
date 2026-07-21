@@ -79,7 +79,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | Enum | Values | Notes |
 |---|---|---|
 | `DEVICE_STATE` | `CLOSED`, `IDLE`, `STREAMING`, `UPDATING` | no UNKNOWN: unreadable state surfaces as an `ERROR_CODE`, `get_state()` keeps the last known value |
-| `MOTION_STATE` | `STATIC`, `MOVING`, `FALLING` | on-device IMU classification (ZUPT / free-fall) |
+| `MOTION_STATE` | `STATIC`, `MOVING`, `FALLING` | host SDK classification from acceleration and angular speed |
 | `CAMERA_STATE` / `SENSOR_STATE` | `AVAILABLE`, `NOT_AVAILABLE` | set by `health_check()` |
 | `TIME_REFERENCE` | `IMAGE`, `CURRENT` | frame capture time vs host now |
 | `COORDINATE_SYSTEM` | `IMAGE`, `LEFT/RIGHT_HANDED_Y_UP`, `RIGHT/LEFT_HANDED_Z_UP`, `RIGHT_HANDED_Z_UP_X_FWD` | IMU/pose convention |
@@ -93,5 +93,5 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING` | firmware update phases |
 | `MODEL` | `M1` | |
 | `SENSOR_TYPE` | `ACCELEROMETER`, `GYROSCOPE` | |
-| `SENSORS_UNIT` | `M_SEC_2`, `DEG_SEC`, `CELSIUS`, `HERTZ` | |
+| `SENSOR_UNIT` | `M_SEC_2`, `DEG_SEC`, `CELSIUS`, `HERTZ` | |
 | `LENS_DISTORTION_MODEL` | `DS` | double-sphere camera model |

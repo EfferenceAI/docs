@@ -4,8 +4,12 @@ description: "Accelerometer and gyroscope data — retrieval, timestamps, and mo
 ---
 
 The M1 streams IMU samples alongside video on the same transport.
-`retrieve_imu()` drains every sample that arrived since the previous `grab()`
-— at typical rates that is several samples per video frame, none dropped.
+`retrieve_imu()` drains the queued samples in chronological order after a
+successful `grab()`. At typical rates, a frame interval contains several IMU
+samples.
+
+Leave `InitParameters::enable_imu` enabled, then use a USB or WiFi/UDP data
+plane. A control-only Bluetooth LE (BLE) session cannot deliver IMU samples.
 
 ```cpp
 SensorsData sensors;
@@ -31,18 +35,22 @@ while (dev.grab() == ERROR_CODE::SUCCESS) {
 |---|---|
 | `samples` | every `ImuSample` since the last drain, in order |
 | `dropped` | ring-overrun count (host consumed too slowly) |
-| `motion_state` | `STATIC` / `MOVING` / `FALLING`, classified on-device |
+| `motion_state` | `STATIC` / `MOVING` / `FALLING`, classified by the host SDK from the newest sample |
 
 ## Timestamps and ordering
 
 Sample timestamps are on the device clock, the same timebase as
-`Mat::timestamp` — so associating IMU windows to frames is a direct
+`Mat::getTimestamp()` — so associating IMU windows to frames is a direct
 comparison. `sequence` increments per sample; a gap means samples were lost
 in transit (lossy UDP) or overrun (`dropped`).
 
 `retrieve_imu(data, TIME_REFERENCE::IMAGE)` is the default and returns the
-batch aligned to the grabbed frame. Samples arriving between grabs are never
-lost — they queue and drain on the next call.
+queued batch aligned to the grabbed frame. Samples arriving between calls
+queue for the next drain. Passing `TIME_REFERENCE::CURRENT` keeps only the
+newest available sample.
+
+`flip_mode` and `coordinate_system` are applied when samples are delivered.
+Recordings preserve the raw `IMAGE`-frame data.
 
 ## Sensor configuration
 

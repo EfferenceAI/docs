@@ -1,16 +1,17 @@
 ---
-title: "ef::Device"
+title: "Device"
 description: "The device handle — lifecycle, data plane, and control plane"
 ---
 
 `ef::Device` is the single entry point to the SDK. It is move-only (one handle
 owns one device session).
 
-**Contract highlights** (from `Device.hpp`):
+Key behavior:
 
-- `open()` claims the device **and starts capture** on transports that carry
-  a data plane (USB, MCAP; BLE + `udp_host` for WiFi streaming). `grab()`
-  works immediately.
+- `open()` claims and configures a live device, caches its identity, and
+  normally leaves it ready in `IDLE` (existing device activity may report
+  `STREAMING`). The first `grab()` starts the USB or WiFi/UDP data plane.
+  MCAP replay creates its reader during `open()`.
 - Calls that touch the wire return `ERROR_CODE`; data comes back through
   `out` parameters. `get_*` methods without an `ERROR_CODE` never block —
   they return cached values.
@@ -35,8 +36,9 @@ DEVICE_STATE   get_state() const;
 ```
 `open()` validates the session configuration against the device's enabled
 capability menu (`INVALID_RESOLUTION` / `INVALID_FPS` /
-`UNSUPPORTED_COMPRESSION`), syncs the device clock, and starts capture.
-`close()` stops any host recording and releases the transport. `get_state()`
+`UNSUPPORTED_COMPRESSION`), syncs the device clock, and prepares capture.
+`close()` stops any host-file recording and releases the transport. It does
+not stop a device-local recording. `get_state()`
 returns the last known `DEVICE_STATE` and never blocks.
 
 ## Data plane
@@ -60,8 +62,7 @@ other than `NV12` require the FFmpeg build. The `Mat` owns its buffer.
 ERROR_CODE retrieve_imu(SensorsData& data,
                         TIME_REFERENCE ref = TIME_REFERENCE::IMAGE);
 ```
-Drain every IMU sample since the previous call. Samples are never lost
-between grabs — they queue in the SDK.
+Drain queued IMU samples in chronological order.
 
 ```cpp
 Timestamp get_timestamp(TIME_REFERENCE ref = TIME_REFERENCE::CURRENT) const;
@@ -92,10 +93,9 @@ ERROR_CODE download_recording(const std::string& name, const std::string& dest_p
 ERROR_CODE upload_recording(const std::string& name, const std::string& url);
 ERROR_CODE stop_upload(const std::string& name);
 ```
-`HOST_FILE` tees the live stream to a local `.mcap`; `DEVICE_LOCAL` records
-on the device's eMMC and survives host disconnect. `download_recording` pulls
-over the control link (USB/BLE — no WiFi needed); `upload_recording` pushes
-from the device to a pre-signed URL over WiFi.
+`HOST_FILE` writes the live stream to a local MCAP file. `DEVICE_LOCAL`
+records on the M1 and survives `close()` or disconnect. Downloads use the
+USB or Bluetooth LE (BLE) control link; uploads use WiFi.
 
 ## Updates
 

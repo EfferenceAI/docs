@@ -1,35 +1,30 @@
-/* 1. Remove all rounded corners globally */
 * {
-  border-radius: 0px !important;
+  border-radius: 0 !important;
 }
 
-/* 2. Set primary font to Inter */
-body, h1, h2, h3, h4, h5, h6, p, a, span {
-  font-family: 'Inter', sans-serif !important;
+body {
+  font-family: "Inter", sans-serif !important;
 }
 
-/* --- Light Mode Tip Overrides --- */
 .prose .callout[class*="bg-green-"],
 .prose .callout[class*="bg-green-"] p,
 .prose .callout[class*="bg-green-"] h4,
 .prose .callout[class*="bg-green-"] span {
-  background-color: #FAFAFA !important;
-  border-color: #E5E5E5 !important;
-  color: #1A1A1A !important;
+  background-color: #fafafa !important;
+  border-color: #e5e5e5 !important;
+  color: #1a1a1a !important;
 }
 
-/* --- Dark Mode Tip Overrides --- */
 html.dark .prose .callout[class*="bg-green-"],
 html.dark .prose .callout[class*="dark:bg-green-"],
 html.dark .prose .callout[class*="dark:bg-green-"] p,
 html.dark .prose .callout[class*="dark:bg-green-"] h4,
 html.dark .prose .callout[class*="dark:bg-green-"] span {
-  background-color: #1A1A1A !important;
+  background-color: #1a1a1a !important;
   border-color: #333333 !important;
-  color: #E5E5E5 !important;
+  color: #e5e5e5 !important;
 }
 
-/* --- Make the Icon Gray --- */
 .prose .callout[class*="bg-green-"] svg {
   color: #808080 !important;
 }

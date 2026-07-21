@@ -1,0 +1,41 @@
+---
+title: "System Overview"
+description: "Understand the M1 sensing, storage, and connection model"
+---
+
+The Efference M1 combines synchronized sensors, onboard compute, persistent
+storage, and wired and wireless connections.
+
+## Device components
+
+- CPU and NPU for device services and onboard processing
+- Camera and inertial sensors
+- Memory and persistent storage for configuration and device-local recording
+- USB, Bluetooth LE (BLE), and WiFi interfaces
+
+## Hardware-synchronized data
+
+Video frames and IMU samples share a device timebase. The Efference SDK
+preserves those timestamps in live streams and MCAP recordings, so the same
+capture API can process live and recorded data.
+
+## Two operating models
+
+<CardGroup cols={2}>
+  <Card title="Standalone recording" icon="hard-drive">
+    Start a device-local recording, disconnect the host, and retrieve the MCAP
+    file later.
+  </Card>
+  <Card title="Host-connected capture" icon="computer">
+    Stream synchronized video and IMU to a Linux host over USB or WiFi/UDP.
+  </Card>
+</CardGroup>
+
+## Control and data planes
+
+The device separates low-bandwidth control from high-bandwidth sensor data:
+
+| Plane | Carries | Available over |
+|---|---|---|
+| Control | Identity, configuration, health, WiFi, recordings, and updates | USB or Bluetooth LE (BLE) |
+| Data | Live video and IMU | USB or WiFi/UDP |

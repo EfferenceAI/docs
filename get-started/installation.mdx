@@ -1,72 +1,66 @@
 ---
-title: "Installation"
-description: "Build the Efference SDK on Linux or NVIDIA Jetson"
+title: "Install the Efference SDK on Linux"
+sidebarTitle: "Working with Linux"
+description: "Install the Efference SDK and tools on an x86_64 Linux PC"
 ---
 
-## Requirements
+Use the automated installer on Ubuntu or another apt-based Linux host.
 
-- Linux (Ubuntu 22.04/24.04, Debian, or JetPack on NVIDIA Jetson — any
-  apt-based distro installs dependencies automatically)
-- A C++17 compiler, CMake ≥ 3.16, pkg-config
-- `libusb-1.0` — the only required dependency
+## Before you begin
 
-Optional features pull in extra packages, all installed automatically by the
-build script:
+- Ubuntu 22.04 or 24.04 is recommended
+- Connect the M1 with a USB-C data cable, preferably to a direct USB 3.x port
+- Your user must be able to run `sudo` for the first-time `--deps` install,
+  which adds apt packages and the USB udev rule
 
-| Feature | Packages |
-|---|---|
-| H.264/H.265 decode in `retrieve_image()` | `libavcodec-dev libavutil-dev libswscale-dev` |
-| Bluetooth LE control | `libglib2.0-dev libssl-dev` |
-| `efference-viewer` + the OpenCV examples | `libopencv-dev` + FFmpeg |
+See [Recommended Specifications](/get-started/requirements) for compatible
+hosts and device requirements.
 
-## Build
+## Install
 
 <Steps>
-  <Step title="Clone">
+  <Step title="Clone the public repository">
     ```sh
-    git clone https://github.com/efferenceai/efference.git
+    git clone https://github.com/EfferenceAI/efference.git
     cd efference
     ```
   </Step>
-  <Step title="Build">
+  <Step title="Build the Linux SDK">
     ```sh
-    ./build.sh
+    ./build.sh --deps
     ```
-    The script installs the build dependencies (apt), installs the USB udev
-    rule, then configures and builds with CMake. Binaries land in
-    `sdk/linux/build/`.
+
+    `--deps` installs packages and the M1 USB udev rule, then builds the SDK
+    and tools. This first run uses `sudo`.
   </Step>
-  <Step title="Verify">
-    Plug in the M1 over USB and run:
+  <Step title="Re-plug the M1">
+    The installer creates `/etc/udev/rules.d/51-efference.rules`. Disconnect
+    and reconnect the device after the first installation so the new
+    permissions take effect.
+  </Step>
+  <Step title="Verify the installation">
     ```sh
+    ./sdk/linux/build/ef list
     ./sdk/linux/build/ef info
     ```
-    You should see the device's serial, firmware version, camera modes, and
-    IMU parameters.
+
+    `ef list` should discover the connected M1. `ef info` prints its serial,
+    firmware version, capture modes, camera configuration, IMU parameters,
+    and wireless status.
   </Step>
 </Steps>
 
+The binaries are written to `sdk/linux/build/`:
+
+| Tool | Purpose |
+|---|---|
+| `ef` | Device discovery, configuration, health, recording, WiFi, and updates |
+| `efference-viewer` | Decoded live video with IMU status |
+
 <Note>
-The build installs a udev rule at `/etc/udev/rules.d/51-efference.rules` so
-non-root users can open the device. If you skip it (`EF_SKIP_UDEV=1
-./build.sh`), running as a regular user fails with
-`INSUFFICIENT_PERMISSIONS`. Re-plug the device after the rule is installed.
+After installation, run `./build.sh` to rebuild without changing packages or
+USB permissions.
 </Note>
-
-## Plain CMake
-
-The Linux SDK is a self-contained CMake project:
-
-```sh
-cd sdk/linux
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(nproc)
-```
-
-Optional pieces degrade gracefully: without FFmpeg only the RAW/NV12 path is
-available; without GLib/OpenSSL the SDK is USB-only; without OpenCV the
-viewer and the OpenCV examples are skipped. CMake prints what was enabled at
-configure time.
 
 ## Linking against the SDK
 
@@ -80,3 +74,8 @@ target_link_libraries(my_app PRIVATE ef::ef)
 ```cpp
 #include <ef/Device.hpp>
 ```
+
+## Next step
+
+Continue with [Connection & Lifecycle](/device/connection), or set up
+[wireless operation](/get-started/quickstart-wireless).

@@ -3,19 +3,20 @@ title: "WiFi Provisioning"
 description: "Put the M1 on a network for UDP streaming and uploads"
 ---
 
-The device needs WiFi for two things: pushing the live stream to your host
-over UDP, and uploading recordings to the cloud. Provisioning happens over
-the control link — usually Bluetooth LE, since a device on USB rarely needs
-WiFi.
+The M1 uses WiFi for UDP streams, recording uploads, and firmware downloads.
+Provision it over a USB or Bluetooth LE (BLE) control session.
 
 ## Provision a network
 
 ```cpp
-dev.wifi_add("MyNetwork", "MyPassphrase", "US");
+ERROR_CODE ec = dev.wifi_add("MyNetwork", "MyPassphrase", "US");
+if (ec == ERROR_CODE::SUCCESS) {
+    dev.wifi_select("MyNetwork");
+}
 ```
 
-The third argument is the ISO regulatory-domain country code; setting it
-unlocks 5 GHz channels. Saved networks persist on the device.
+The optional ISO country code sets the regulatory domain. Saved networks
+persist on the device.
 
 ```cpp
 dev.wifi_remove("MyNetwork");     // forget
@@ -25,20 +26,28 @@ dev.wifi_select("MyNetwork");     // prefer among saved networks
 ## Read the connection state
 
 WiFi status lives in the wireless block of the device information and
-refreshes on each `get_device_information()` after a wifi call:
+is cached when `open()` succeeds. WiFi add/remove/select calls refresh that
+cached block after the command is accepted:
 
 ```cpp
 WirelessConfiguration w = dev.get_device_information().wireless;
 // w.wifi_connected, w.wifi_ssid, w.wifi_ip_address
 // w.wifi_rssi (dBm), w.internet_reachable
+// w.wifi_state, w.wifi_link_speed, w.wifi_freq_mhz, w.wifi_security
 // w.saved_networks
 ```
+
+`get_device_information()` is cached and non-blocking. Because association is
+asynchronous, the first snapshot after `wifi_add()` may still show
+`connecting`.
 
 ## From the CLI
 
 ```sh
 ef --ble AA:BB:CC:DD:EE:FF wifi add MyNetwork MyPassphrase US
+ef --ble AA:BB:CC:DD:EE:FF wifi select MyNetwork
 ef --ble AA:BB:CC:DD:EE:FF wifi status
+ef --ble AA:BB:CC:DD:EE:FF wifi list
 ef --ble AA:BB:CC:DD:EE:FF wifi remove MyNetwork
 ```
 
@@ -47,3 +56,22 @@ Operations that require connectivity — `upload_recording()`, update downloads
 — fail with `WIFI_NOT_CONNECTED` when the device is not associated. Check
 `wireless.wifi_connected` first for a better user experience.
 </Note>
+
+## Enable wireless streaming
+
+Once the M1 is associated, open a new BLE session with the Linux receiver's
+IP:
+
+```cpp
+InitParameters init;
+init.input_type = INPUT_TYPE::STREAM;
+init.ble_address = "AA:BB:CC:DD:EE:FF";
+init.udp_host = "192.168.1.50";  // receiving Linux host
+init.udp_port = 5005;
+
+Device dev;
+dev.open(init);
+```
+
+The M1 and receiver must be mutually reachable. `udp_host` is the host
+address, not the M1's address.

@@ -1,0 +1,78 @@
+---
+title: "Efference Device"
+sidebarTitle: "Overview"
+description: "The central SDK object for capture, sensing, recording, and device services"
+---
+
+`ef::Device` is a move-only handle for one M1 session. It provides capture,
+recording, diagnostics, networking, updates, and system management.
+
+```cpp
+#include <ef/Device.hpp>
+
+ef::Device device;
+ef::ERROR_CODE status = device.open();
+if (status != ef::ERROR_CODE::SUCCESS) {
+    return 1;
+}
+
+device.close();
+```
+
+## Choose a task
+
+<CardGroup cols={2}>
+  <Card title="Connect" icon="plug" href="/device/connection">
+    Open a control session over USB or Bluetooth LE (BLE).
+  </Card>
+  <Card title="Capture video and IMU" icon="video" href="/video/capture">
+    Start the data plane with `grab()` and retrieve synchronized data.
+  </Card>
+  <Card title="Record and replay" icon="record-vinyl" href="/recording/overview">
+    Create host-file or device-local MCAP recordings.
+  </Card>
+  <Card title="Manage the M1" icon="sliders" href="/device/management">
+    Check health, configure WiFi, update firmware, and manage device settings.
+  </Card>
+</CardGroup>
+
+## One handle, two planes
+
+The M1 separates control operations from high-bandwidth sensor data:
+
+| Plane | Features | Transport |
+|---|---|---|
+| Control | Configuration, health, WiFi, recording management, and updates | USB or Bluetooth LE (BLE) |
+| Data | Live video and IMU | USB or WiFi/UDP |
+
+A BLE session can be control-only. Adding `InitParameters::udp_host` gives
+that session a WiFi/UDP data plane.
+
+## Lifecycle
+
+1. Discover the M1 and fill `InitParameters`.
+2. Call `open()` to start the control session and cache device information.
+3. Call `grab()` to start the live data plane when capture is required.
+4. Call `close()` to release host resources.
+
+A device-local recording continues after `close()` or a host disconnect. Stop
+it explicitly with `disable_recording()`.
+
+## State model
+
+| State | Meaning |
+|---|---|
+| `CLOSED` | No open session |
+| `IDLE` | Control session open; no active data movement |
+| `STREAMING` | Live stream, device-local recording, upload, or another data-moving operation is active |
+| `UPDATING` | Firmware update in progress |
+
+Calls that are illegal in the current state return
+`ERROR_CODE::INVALID_FUNCTION_CALL`. Calls that touch the device return an
+`ERROR_CODE` and write results through output parameters.
+
+Cached getters, including `get_device_information()` and
+`get_health_status()`, do not access the device or block.
+
+Continue with [Connection & Lifecycle](/device/connection) before setting up
+an individual feature.

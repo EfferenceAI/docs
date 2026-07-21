@@ -1,0 +1,40 @@
+---
+title: "Discover Devices"
+---
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include <ef/Device.hpp>
+
+using namespace ef;
+
+int main(int argc, char** argv) {
+    const uint32_t scan_ms =
+        (argc >= 2) ? std::stoul(argv[1]) : 3000;
+
+    std::vector<DeviceProperties> devices =
+        Device::get_device_list(true, scan_ms);
+
+    if (devices.empty()) {
+        std::cout << "No devices found.\n";
+        return 0;
+    }
+
+    for (const auto& device : devices) {
+        std::cout << "- " << to_string(device.input_type);
+        if (device.input_type == INPUT_TYPE::USB) {
+            std::cout << "  id=" << device.device_id
+                      << "  serial=" << device.serial;
+        } else {
+            std::cout << "  ble=" << device.ble_address
+                      << "  name=\"" << device.ble_name << "\"";
+        }
+        std::cout << "\n";
+    }
+
+    return 0;
+}
+```

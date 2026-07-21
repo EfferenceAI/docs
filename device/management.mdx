@@ -1,13 +1,15 @@
 ---
 title: "Device Management"
-description: "Configuration, time sync, location, passwords, and reboot"
+description: "Set up capture defaults, storage, time, location, BLE access, and reboot"
 ---
+
+Device management uses the USB or BLE control plane. Open the device before
+calling these methods; no live video data plane is required.
 
 ## Persistent capture configuration
 
-The device boots with a stored resolution/fps/codec configuration.
-`set_configuration()` persists a new one — applied in `IDLE` only, so it never
-disrupts a live session:
+The M1 boots with a stored resolution, frame rate, and codec.
+`set_configuration()` updates these defaults while the device is `IDLE`:
 
 ```cpp
 dev.set_configuration(1920, 1200, 30, COMPRESSION_MODE::H265);
@@ -21,9 +23,20 @@ for (const SupportedMode& m : caps.modes)
     std::printf("%dx%d @ %d\n", m.resolution.width, m.resolution.height, m.fps);
 ```
 
-A rejected value reports `INVALID_RESOLUTION`, `INVALID_FPS`, or
-`UNSUPPORTED_COMPRESSION`. Note this is the *boot* configuration — a session's
-own configuration is set per-`open()` via `InitParameters`.
+A session can override the stored configuration through `InitParameters`.
+
+## Storage
+
+Query device storage before a long device-local recording:
+
+```cpp
+uint64_t free_bytes = 0;
+uint64_t total_bytes = 0;
+ERROR_CODE ec = dev.get_storage(free_bytes, total_bytes);
+```
+
+Check free space before starting a long device-local recording. Storage
+exhaustion causes recording setup to return `STORAGE_FULL`.
 
 ## Time
 
@@ -36,6 +49,10 @@ Timestamp t;
 dev.get_device_time(t);   // device CLOCK_REALTIME, ns since epoch
 ```
 
+`sync_time()` writes host wall time to the device. `get_device_time()` performs
+a control round-trip and returns the device's current epoch timestamp. Use
+`Mat::getTimestamp()` and `ImuSample::timestamp` for capture timestamps.
+
 ## Location
 
 The device stamps recordings with a `LocationFix`. Persist a location (until
@@ -47,6 +64,9 @@ Location loc;
 dev.get_location(loc);
 ```
 
+The persistent location applies to later recordings. For one session, set
+`RecordingParameters::has_location` and `location`.
+
 ## BLE password
 
 BLE control is password-gated (factory default `123456`). Rekey it:
@@ -56,13 +76,36 @@ dev.set_ble_password("123456", "new-password");   // over BLE: old required
 dev.set_ble_password("",       "new-password");   // over USB: physical access resets
 ```
 
+Over BLE, provide the old password. USB physical access permits an empty old
+password to reset the credential.
+
 ## State and reboot
 
 ```cpp
 DEVICE_STATE s = dev.get_state();   // CLOSED / IDLE / STREAMING / UPDATING
-dev.reboot();                       // device reboots; handle closes
+ERROR_CODE ec = dev.reboot();
 ```
 
 `get_state()` never blocks — it returns the last known state. Illegal calls
 for the current state return `INVALID_FUNCTION_CALL` without touching the
 device.
+
+Stop capture, recording, upload, health, or update work before rebooting. When
+the reboot command is accepted—or the link disappears because reboot began
+before the reply—the SDK closes the handle. Reconnect with `open()` after the
+device returns.
+
+## CLI setup commands
+
+```sh
+ef config
+ef config set 1920 1200 30 h265
+ef storage
+ef sync-time
+ef time
+ef location
+ef location set 37.7749 -122.4194
+ef set-password <new>          # USB
+ef --ble <MAC> set-password <old> <new>
+ef reboot
+```

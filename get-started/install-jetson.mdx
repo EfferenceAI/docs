@@ -1,0 +1,60 @@
+---
+title: "Install the Efference SDK on NVIDIA Jetson"
+sidebarTitle: "Working with Jetson"
+description: "Install the Efference SDK on an NVIDIA Jetson running JetPack"
+---
+
+The Linux SDK builds directly on an NVIDIA Jetson running JetPack.
+
+## Before you begin
+
+- Install and boot NVIDIA JetPack on the Jetson
+- Confirm the Jetson has internet access for apt packages
+- Connect the M1 with a USB-C data cable, preferably to a direct USB 3.x port
+- Ensure your user can run `sudo`
+
+## Install
+
+<Steps>
+  <Step title="Clone the public repository">
+    ```sh
+    git clone https://github.com/EfferenceAI/efference.git
+    cd efference
+    ```
+  </Step>
+  <Step title="Build on the Jetson">
+    ```sh
+    ./build.sh --deps
+    ```
+
+    `--deps` installs the arm64 packages and M1 USB udev rule, then builds in
+    `sdk/linux/build/`. Use `./build.sh` for later rebuilds.
+  </Step>
+  <Step title="Re-plug the M1">
+    Disconnect and reconnect the M1 after the first build so the new udev
+    permissions apply.
+  </Step>
+  <Step title="Verify the connection">
+    ```sh
+    ./sdk/linux/build/ef list
+    ./sdk/linux/build/ef info
+    ```
+
+    The M1 should appear in the device list, and `ef info` should print its
+    serial, firmware, capture modes, and sensor configuration.
+  </Step>
+</Steps>
+
+## Jetson considerations
+
+- Prefer a direct SuperSpeed port rather than a hub.
+- Use an appropriate Jetson power mode for sustained decode or perception
+  workloads.
+- MCAP recordings can grow quickly; write them to storage sized for the
+  expected session duration.
+- The Efference SDK does not require CUDA; downstream applications may use it.
+
+## Next step
+
+Continue with [Connection & Lifecycle](/device/connection), or use the NVIDIA
+Jetson as the Linux host in [Working with Wireless](/get-started/quickstart-wireless).

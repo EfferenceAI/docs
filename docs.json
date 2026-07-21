@@ -20,7 +20,7 @@
   "logo": {
     "light": "/logo/light.png",
     "dark": "/logo/dark.png",
-    "href": "https://efference.ai"
+    "href": "https://docs.efference.ai"
   },
   "favicon": {
     "light": "/favicon.png",
@@ -31,36 +31,34 @@
       {
         "label": "Website",
         "href": "https://efference.ai"
-      },
-      {
-        "label": "GitHub",
-        "href": "https://github.com/efferenceai"
       }
-    ]
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/EfferenceAI/efference"
+    }
   },
   "navigation": {
     "tabs": [
       {
-        "tab": "Home",
-        "pages": [
-          "index"
-        ]
-      },
-      {
         "tab": "Documentation",
-        "groups": [
+        "pages": [
           {
-            "group": "Get Started",
+            "group": "Getting Started",
             "pages": [
               "introduction",
+              "get-started/system-overview",
+              "get-started/requirements",
               "get-started/installation",
-              "get-started/quickstart-wired",
+              "get-started/install-jetson",
               "get-started/quickstart-wireless"
             ]
           },
           {
-            "group": "Modules",
+            "group": "Device",
             "pages": [
+              "device/overview",
+              "device/connection",
               "video/capture",
               "sensors/imu",
               "recording/overview",
@@ -72,28 +70,34 @@
             ]
           },
           {
-            "group": "Integrations",
-            "pages": [
-              "integrations/opencv",
-              "integrations/ble"
-            ]
-          },
-          {
             "group": "Command-Line Tools",
             "pages": [
               "tools/ef",
-              "tools/ef-grab",
               "tools/efference-viewer"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Code Examples",
+        "groups": [
+          {
+            "group": "Wired",
+            "pages": [
+              "examples/wired/serial-number",
+              "examples/wired/health-check",
+              "examples/wired/data-stream",
+              "examples/wired/wifi-status",
+              "examples/wired/record-and-download"
             ]
           },
           {
-            "group": "Tutorials",
+            "group": "Wireless",
             "pages": [
-              "tutorials/hello-device",
-              "tutorials/health-check",
-              "tutorials/image-capture",
-              "tutorials/sensor-data",
-              "tutorials/recording"
+              "examples/wireless/choosing-a-connection",
+              "examples/wireless/discover-devices",
+              "examples/wireless/wifi-provisioning",
+              "examples/wireless/udp-livestream"
             ]
           }
         ]
@@ -116,7 +120,7 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/efferenceai",
+      "github": "https://github.com/EfferenceAI/efference",
       "x": "https://x.com/efferenceai"
     }
   },

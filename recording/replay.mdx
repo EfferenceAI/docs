@@ -3,10 +3,8 @@ title: "MCAP Replay"
 description: "Replay a recorded session through the same API as a live device"
 ---
 
-A recorded `.mcap` replays through the **same** `Device` API — point
-`InitParameters` at the file instead of a transport and the grab loop is
-unchanged. Code written against a live device runs against a recording
-verbatim, the same way an SVO file works in the ZED SDK.
+Set `InitParameters::input_type` to `MCAP` and provide a recording path. The
+normal `grab()` and retrieval loop remains unchanged.
 
 ```cpp
 InitParameters init;
@@ -28,10 +26,12 @@ for (;;) {
 dev.close();
 ```
 
-The differences from a live session:
+Replay differs from a live session in four ways:
 
 - `grab()` returns `END_OF_BUFFER` when the file runs out — the one loop-exit
   condition unique to replay.
+- The recording's codec overrides `InitParameters::compression`; the SDK
+  decodes the format stored in the file.
 - Control-plane calls (health, WiFi, recording management) return
   `INVALID_FUNCTION_CALL` — there is no device.
 - Timestamps are the original capture timestamps from the recording.
@@ -43,8 +43,3 @@ to a standard video file, use the bundled script:
 ```sh
 python3 sdk/linux/tools/mcap_to_video.py session.mcap session.mp4
 ```
-
-<Note>
-If HEVC won't play in Foxglove on Linux, record `h264` instead, or transcode
-with `mcap_to_video.py`.
-</Note>

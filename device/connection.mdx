@@ -1,0 +1,150 @@
+---
+title: "Connect to an Efference Device"
+sidebarTitle: "Connection & Lifecycle"
+description: "Discover an M1, select USB or BLE, open a session, and inspect its capabilities"
+---
+
+Every SDK workflow begins with an `ef::Device`. Choose a control transport,
+fill `InitParameters`, and call `open()` before using a device feature.
+
+## Discover devices
+
+USB discovery is always available:
+
+```cpp
+std::vector<ef::DeviceProperties> devices =
+    ef::Device::get_device_list();
+```
+
+Include a Bluetooth LE scan with:
+
+```cpp
+std::vector<ef::DeviceProperties> devices =
+    ef::Device::get_device_list(true, 3000);  // scan BLE for 3 seconds
+```
+
+USB results provide `device_id` and `serial`. Bluetooth LE (BLE) results
+provide `ble_address` and `ble_name`.
+
+From the command line:
+
+```sh
+ef list
+ef list --scan-ble
+```
+
+## Open over USB
+
+USB is the default transport:
+
+```cpp
+ef::Device device;
+ef::ERROR_CODE status = device.open();
+```
+
+Select a specific M1 when several are attached:
+
+```cpp
+ef::InitParameters init;
+init.input_type = ef::INPUT_TYPE::USB;
+init.device_id = 1;
+
+ef::Device device;
+ef::ERROR_CODE status = device.open(init);
+```
+
+USB powers the M1 and carries control and live data.
+
+## Open over Bluetooth LE
+
+BLE provides the control plane:
+
+```cpp
+ef::InitParameters init;
+init.input_type = ef::INPUT_TYPE::STREAM;
+init.ble_address = "AA:BB:CC:DD:EE:FF";
+init.ble_password = "123456";  // factory default
+
+ef::Device device;
+ef::ERROR_CODE status = device.open(init);
+```
+
+An incorrect password returns `INVALID_PASSWORD`. Leaving `udp_host` empty
+creates a control-only session.
+
+## Add wireless live data
+
+Provision the M1 on WiFi first, then set the receiving Linux host's reachable
+IP address:
+
+```cpp
+ef::InitParameters init;
+init.input_type = ef::INPUT_TYPE::STREAM;
+init.ble_address = "AA:BB:CC:DD:EE:FF";
+init.ble_password = "123456";
+init.udp_host = "192.168.1.50";  // this host, not the M1
+init.udp_port = 5005;
+
+ef::Device device;
+ef::ERROR_CODE status = device.open(init);
+```
+
+The M1 cannot infer the host IP over BLE. Both devices must be on a reachable
+network, and the host firewall must permit the selected UDP port.
+
+## Session behavior
+
+`open()` claims the control transport, validates capture settings, aligns the
+device clock, and caches device information. It normally leaves the handle in
+`IDLE`; existing device activity may report `STREAMING`.
+
+The first `grab()` starts the USB or WiFi/UDP data plane. Control-only work
+therefore does not start an unnecessary live stream.
+
+MCAP replay is the exception: `open()` creates the reader and reports
+`STREAMING`.
+
+## Inspect identity and capabilities
+
+`get_device_information()` returns the snapshot cached by `open()`:
+
+```cpp
+ef::DeviceInformation info = device.get_device_information();
+
+std::cout << info.serial << "\n";
+std::cout << info.firmware_version << "\n";
+
+for (const ef::SupportedMode& mode : info.capabilities.modes) {
+    std::cout << mode.resolution.width << "x"
+              << mode.resolution.height << " @ "
+              << mode.fps << "\n";
+}
+```
+
+This cached accessor does not block or access the device. WiFi provisioning
+calls refresh the cached wireless fields after the command is accepted.
+
+## Close the session
+
+```cpp
+device.close();
+```
+
+Closing stops a host live stream and finalizes a host-file recording, then
+releases the transport. It intentionally does **not** stop a device-local
+recording, which is designed to survive host disconnects.
+
+Calling `open()` on an already open handle returns
+`INVALID_FUNCTION_CALL`. Close it before opening a different transport or
+device.
+
+## Common connection errors
+
+| Error | Meaning |
+|---|---|
+| `DEVICE_NOT_DETECTED` | No matching USB device, BLE device, or MCAP file |
+| `INSUFFICIENT_PERMISSIONS` | USB device found but blocked by host permissions |
+| `DEVICE_NOT_AVAILABLE` | Device found but could not be opened |
+| `INVALID_PASSWORD` | BLE authentication failed |
+| `INVALID_FUNCTION_CALL` | Invalid state, missing BLE support, missing required path/address, or repeated `open()` |
+| `COMMUNICATION_ERROR` | Control transport failed during the session |

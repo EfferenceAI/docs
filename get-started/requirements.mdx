@@ -1,0 +1,79 @@
+---
+title: "Recommended Specifications"
+description: "Compatible host devices and requirements for wired and wireless operation"
+---
+
+Choose a Linux host and connection that match your workflow.
+
+## Wired operation
+
+In a wired configuration, the M1 connects directly to a host over USB. The
+USB link powers the M1 and carries both control commands and live sensor data.
+
+| Component | Requirement |
+|---|---|
+| Perception device | Efference M1 |
+| Host operating system | Ubuntu 22.04 or 24.04 recommended; other apt-based Linux distributions may work |
+| Host architecture | x86_64 or arm64 |
+| Connection | USB-C data cable connected to a USB 3.x host port |
+| Host software | Efference C++ SDK and USB udev rule |
+
+The Efference SDK supports Linux hosts, including NVIDIA Jetson. Windows and
+macOS are not supported. Use a SuperSpeed data cable and a direct USB port
+when possible.
+
+### Recommended Linux host
+
+- A modern 4-core or better processor
+- 8 GB RAM or more
+- At least 10 GB of free storage, with more space for MCAP recordings
+- A USB 3.x port
+- Ubuntu 22.04 or 24.04
+
+The build requires C++17, CMake 3.16 or newer, `pkg-config`, and `libusb-1.0`.
+The installation script adds the optional dependencies for video decoding,
+Bluetooth LE (BLE), and the viewer.
+
+## Wireless operation
+
+Wireless operation separates the control and data connections:
+
+| Interface | Compatible devices | Purpose |
+|---|---|---|
+| Bluetooth LE (BLE) | Linux host or compatible mobile controller | Device control, configuration, health, and recording management |
+| WiFi/UDP | Linux host running the SDK | Live video and IMU reception |
+| WiFi/HTTPS | Network or cloud endpoint | Recording uploads and firmware downloads |
+
+Bluetooth LE does not carry live video or IMU data. For a live wireless
+stream, the M1 pushes data over WiFi/UDP to a Linux host specified by its
+reachable IP address.
+
+| Component | Requirement |
+|---|---|
+| Perception device | Efference M1 with a suitable power source |
+| Control device | Bluetooth LE-capable Linux host or compatible mobile hardware |
+| Live-stream receiver | Linux x86_64 or arm64 host running the Efference SDK |
+| Network | M1 and receiving host on the same reachable WiFi network |
+| Recommended WiFi | Reliable 5 GHz connection for live streaming |
+
+Device-local recording, health checks, configuration, and recording downloads
+can use the BLE control link without a live data stream.
+
+<Note>
+Compute, network, and storage needs depend on capture settings, recording
+duration, and host workloads.
+</Note>
+
+## Choose an installation path
+
+<CardGroup cols={3}>
+  <Card title="Working with Linux" icon="linux" href="/get-started/installation">
+    Build the SDK and tools on an x86_64 Ubuntu or Debian host.
+  </Card>
+  <Card title="Working with Jetson" icon="microchip" href="/get-started/install-jetson">
+    Build on an NVIDIA Jetson running JetPack.
+  </Card>
+  <Card title="Working with Wireless" icon="wifi" href="/get-started/quickstart-wireless">
+    Use Bluetooth LE for control and WiFi/UDP for live data.
+  </Card>
+</CardGroup>

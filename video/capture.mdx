@@ -3,16 +3,19 @@ title: "Video Capture"
 description: "The open / grab / retrieve loop, pixel formats, and compression modes"
 ---
 
-## The capture loop
+Video capture uses the `Device` data plane. USB carries control and pixels on
+one cable; a wireless session uses BLE for control and WiFi/UDP for pixels.
 
-Capture follows the same grammar as a stereo camera SDK: `open()` claims the
-device and starts the stream, `grab()` blocks until the next frame is
-assembled, `retrieve_image()` hands it to you in the format you ask for.
+## Capture loop
+
+`open()` configures the session. The first `grab()` starts the live data plane
+and waits for a frame. `retrieve_image()` copies that frame into an owned
+`Mat`.
 
 ```cpp
 Device dev;
 InitParameters init;
-init.resolution  = RESOLUTION::AUTO;          // device native (1920x1200)
+init.resolution  = RESOLUTION::AUTO;
 init.fps         = 30;
 init.compression = COMPRESSION_MODE::H265;
 if (dev.open(init) != ERROR_CODE::SUCCESS) return 1;
@@ -24,7 +27,10 @@ while (true) {
     if (ec == ERROR_CODE::CORRUPTED_FRAME) continue;  // lossy frame dropped
     if (ec != ERROR_CODE::SUCCESS)         break;     // transport fault
 
-    dev.retrieve_image(image, VIEW::RGBA);
+    ERROR_CODE image_ec = dev.retrieve_image(image, VIEW::RGBA);
+    if (image_ec == ERROR_CODE::CORRUPTED_FRAME) continue;
+    if (image_ec != ERROR_CODE::SUCCESS)         break;
+
     // image.getPtr()       — owned pixel buffer
     // image.getTimestamp() — capture time, device clock
     // image.getFrameId()   — monotonic counter
@@ -34,7 +40,30 @@ dev.close();
 
 `grab()` returns `GRAB_TIMEOUT` when no frame arrived within
 `InitParameters::grab_timeout_ms` (default 1000 ms). It is non-fatal — loop.
-Everything else non-`SUCCESS` means the session is in trouble.
+`CORRUPTED_FRAME` is also non-fatal when partial delivery is enabled.
+`END_OF_BUFFER` is the normal exit for MCAP replay. Other non-`SUCCESS`
+results should end or recover the session.
+
+`retrieve_image()` can also return `CORRUPTED_FRAME`. Skip that image and
+continue to the next `grab()`.
+
+## Select a capture mode
+
+The public capability menu contains only modes enabled on the connected M1:
+
+```cpp
+DeviceInformation info = dev.get_device_information();
+for (const SupportedMode& mode : info.capabilities.modes) {
+    std::printf("%dx%d @ %d\n",
+                mode.resolution.width,
+                mode.resolution.height,
+                mode.fps);
+}
+```
+
+Set the session mode in `InitParameters` before `open()`. To change the
+device's persistent boot configuration instead, stop live work and call
+`set_configuration()` while the device is `IDLE`.
 
 ## Views
 
@@ -42,14 +71,13 @@ Everything else non-`SUCCESS` means the session is in trouble.
 
 | VIEW | Layout | Typical use |
 |---|---|---|
-| `NV12` | planar Y + interleaved UV | zero-cost (native wire format) |
+| `NV12` | planar Y + interleaved UV | native wire format |
 | `RGBA` / `BGRA` | packed 4-channel | rendering, GPU upload |
 | `RGB` / `BGR` | packed 3-channel | OpenCV (`BGR` is its native order) |
 | `GRAY` | single channel | feature tracking |
 
-Any view except `NV12` requires the SDK to be built with FFmpeg (color
-conversion runs through swscale). Wrapping the result for OpenCV is zero-copy
-via the bundled `<ef/opencv.hpp>` header:
+Any view except `NV12` requires FFmpeg. The bundled `<ef/opencv.hpp>` header
+provides a zero-copy OpenCV view:
 
 ```cpp
 #include <ef/opencv.hpp>
@@ -58,8 +86,8 @@ dev.retrieve_image(image, VIEW::BGR);   // BGR = OpenCV's native channel order
 cv::Mat frame = ef::toCvMat(image);     // zero-copy view, no conversion
 ```
 
-See [OpenCV integration](/integrations/opencv) for lifetime rules and the
-NV12 case.
+The `cv::Mat` shares the `ef::Mat` buffer. Call `.clone()` when OpenCV must own
+the pixels beyond the next retrieval.
 
 ## Compression modes
 
@@ -67,7 +95,7 @@ Set once in `InitParameters::compression`:
 
 | Mode | Wire format | Notes |
 |---|---|---|
-| `RAW` | uncompressed NV12 | highest bandwidth, no decode needed |
+| `RAW` | uncompressed NV12 | highest bandwidth, no decode needed; USB only |
 | `H264` / `H265` | encoded | default `H265`; decode needs FFmpeg |
 | `H264_HQ` / `H265_HQ` | near-lossless | high-bitrate quality tier |
 
@@ -82,12 +110,20 @@ A camera mounted upside-down can be corrected host-side with
 `InitParameters::flip_mode`:
 
 - `OFF` (default) / `ON` — fixed
-- `AUTO` — decided once from the IMU gravity vector at stream start
+- `AUTO` — latched once from the first suitable IMU gravity sample
 
-The flip applies to retrieved images only, never to on-device recordings.
+The flip applies to retrieved images only, never to device-local recordings.
+Image-only consumers are supported: `retrieve_image()` peeks at the latest
+acceleration sample without draining the IMU queue.
 
 ## Timestamps
 
 `Mat::getTimestamp()` is the capture time on the **device clock**, which `open()`
 aligns to the host clock (`sync_time()`). `dev.get_timestamp(TIME_REFERENCE::CURRENT)`
 returns host wall time for latency measurements.
+
+## Stop capture
+
+`close()` stops this handle's live data plane and releases the control
+transport. It also finalizes an active host-file recording. It does not stop a
+device-local recording.

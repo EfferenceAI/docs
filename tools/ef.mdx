@@ -1,10 +1,10 @@
 ---
-title: "ef — Control CLI"
-description: "One subcommand per SDK verb: info, health, record, wifi, update, and more"
+title: "ef"
+description: "Control and inspect an Efference M1"
 ---
 
-`ef` is the control tool — every SDK verb as a subcommand. It works over USB
-by default; add `--ble <MAC>` for Bluetooth LE.
+`ef` controls the M1 over USB by default. Add `--ble <MAC>` for Bluetooth LE
+(BLE).
 
 ```
 ef [--ble <MAC>] [--device <id>] [--password <pw>] [--udp <host[:port]>] [--verbose] <command> [args]
@@ -18,7 +18,7 @@ ef [--ble <MAC>] [--device <id>] [--password <pw>] [--udp <host[:port]>] [--verb
 | `--device <id>` | pick one of several USB devices |
 | `--password <pw>` | BLE control password (factory default `123456`) |
 | `--udp <host[:port]>` | with `--ble`: device streams to this host over WiFi/UDP |
-| `--verbose` | print the control-plane traffic |
+| `--verbose` | print control traffic |
 
 ## Commands
 
@@ -80,20 +80,4 @@ ef time                            # read the device wall clock
 ef location                        # read the device's current location
 ef location set <lat> <lon> [alt]  # persist the device location
 ef reboot
-```
-
-## Examples
-
-```sh
-# Wired: full identity + health
-ef info && ef health
-
-# Wireless: provision WiFi over BLE, then check it
-ef --ble AA:BB:CC:DD:EE:FF wifi add HomeNet passphrase US
-ef --ble AA:BB:CC:DD:EE:FF wifi status
-
-# Field workflow: start a device recording, come back later
-ef record start run_42
-# ... unplug, collect data, replug ...
-ef record stop && ef download run_42 run_42.mcap
 ```
