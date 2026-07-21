@@ -1,0 +1,79 @@
+---
+title: "Record and Download"
+description: "Create a device-local MCAP and download it over USB or Bluetooth LE"
+---
+
+Device-local recording runs on the M1 and survives a host disconnect. Stop it
+before downloading the MCAP.
+
+<Tabs>
+  <Tab title="Wired">
+    ```cpp
+    #include <chrono>
+    #include <thread>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::Device device;
+        if (device.open() != ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        ef::RecordingParameters recording;
+        recording.target = ef::RECORDING_TARGET::DEVICE_LOCAL;
+        recording.name = "wired_session";
+
+        if (device.enable_recording(recording) !=
+            ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        device.disable_recording();
+
+        ef::ERROR_CODE status =
+            device.download_recording("wired_session", "wired_session.mcap");
+        device.close();
+        return status == ef::ERROR_CODE::SUCCESS ? 0 : 1;
+    }
+    ```
+  </Tab>
+  <Tab title="Wireless">
+    BLE carries recording control and the file download; WiFi is not required.
+
+    ```cpp
+    #include <chrono>
+    #include <thread>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::InitParameters init;
+        init.input_type = ef::INPUT_TYPE::STREAM;
+        init.ble_address = "AA:BB:CC:DD:EE:FF";
+        init.ble_password = "123456";
+
+        ef::Device device;
+        if (device.open(init) != ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        ef::RecordingParameters recording;
+        recording.target = ef::RECORDING_TARGET::DEVICE_LOCAL;
+        recording.name = "wireless_session";
+
+        if (device.enable_recording(recording) !=
+            ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        device.disable_recording();
+
+        ef::ERROR_CODE status = device.download_recording(
+            "wireless_session", "wireless_session.mcap");
+        device.close();
+        return status == ef::ERROR_CODE::SUCCESS ? 0 : 1;
+    }
+    ```
+  </Tab>
+</Tabs>

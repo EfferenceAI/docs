@@ -1,0 +1,59 @@
+---
+title: "Configure WiFi"
+description: "Provision an M1 network over USB or Bluetooth LE"
+---
+
+Save a WiFi network and select it. Association continues asynchronously after
+the command succeeds.
+
+<Tabs>
+  <Tab title="Wired">
+    ```cpp
+    #include <iostream>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::Device device;
+        if (device.open() != ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        ef::ERROR_CODE status =
+            device.wifi_add("MyNetwork", "MyPassword", "US");
+        if (status == ef::ERROR_CODE::SUCCESS) {
+            status = device.wifi_select("MyNetwork");
+        }
+
+        device.close();
+        return status == ef::ERROR_CODE::SUCCESS ? 0 : 1;
+    }
+    ```
+  </Tab>
+  <Tab title="Wireless">
+    ```cpp
+    #include <iostream>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::InitParameters init;
+        init.input_type = ef::INPUT_TYPE::STREAM;
+        init.ble_address = "AA:BB:CC:DD:EE:FF";
+        init.ble_password = "123456";
+
+        ef::Device device;
+        if (device.open(init) != ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        ef::ERROR_CODE status =
+            device.wifi_add("MyNetwork", "MyPassword", "US");
+        if (status == ef::ERROR_CODE::SUCCESS) {
+            status = device.wifi_select("MyNetwork");
+        }
+
+        device.close();
+        return status == ef::ERROR_CODE::SUCCESS ? 0 : 1;
+    }
+    ```
+  </Tab>
+</Tabs>

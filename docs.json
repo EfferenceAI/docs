@@ -79,25 +79,16 @@
         ]
       },
       {
-        "tab": "Code Examples",
+        "tab": "Tutorials",
         "groups": [
           {
-            "group": "Wired",
+            "group": "Tutorials",
             "pages": [
-              "examples/wired/serial-number",
-              "examples/wired/health-check",
-              "examples/wired/data-stream",
-              "examples/wired/wifi-status",
-              "examples/wired/record-and-download"
-            ]
-          },
-          {
-            "group": "Wireless",
-            "pages": [
-              "examples/wireless/choosing-a-connection",
-              "examples/wireless/discover-devices",
-              "examples/wireless/wifi-provisioning",
-              "examples/wireless/udp-livestream"
+              "tutorials/connect",
+              "tutorials/health-check",
+              "tutorials/capture",
+              "tutorials/wifi",
+              "tutorials/record"
             ]
           }
         ]

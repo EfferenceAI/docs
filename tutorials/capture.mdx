@@ -1,0 +1,91 @@
+---
+title: "Capture Video and IMU"
+description: "Retrieve synchronized frames and inertial samples over USB or WiFi"
+---
+
+Call `grab()` to start the data plane, then retrieve video and queued IMU
+samples.
+
+<Tabs>
+  <Tab title="Wired">
+    ```cpp
+    #include <iostream>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::Device device;
+        if (device.open() != ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        ef::Mat frame;
+        ef::SensorsData imu;
+
+        for (int count = 0; count < 150;) {
+            ef::ERROR_CODE status = device.grab();
+            if (status == ef::ERROR_CODE::GRAB_TIMEOUT) {
+                continue;
+            }
+            if (status != ef::ERROR_CODE::SUCCESS) {
+                break;
+            }
+
+            device.retrieve_image(frame, ef::VIEW::NV12);
+            device.retrieve_imu(imu);
+            ++count;
+
+            std::cout << "frame " << frame.getFrameId()
+                      << ", imu samples " << imu.samples.size() << "\n";
+        }
+
+        device.close();
+        return 0;
+    }
+    ```
+  </Tab>
+  <Tab title="Wireless">
+    Provision WiFi first. Set `udp_host` to this Linux host's reachable IP.
+
+    ```cpp
+    #include <iostream>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::InitParameters init;
+        init.input_type = ef::INPUT_TYPE::STREAM;
+        init.ble_address = "AA:BB:CC:DD:EE:FF";
+        init.ble_password = "123456";
+        init.udp_host = "192.168.1.50";
+        init.udp_port = 5005;
+
+        ef::Device device;
+        if (device.open(init) != ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        ef::Mat frame;
+        ef::SensorsData imu;
+
+        for (int count = 0; count < 150;) {
+            ef::ERROR_CODE status = device.grab();
+            if (status == ef::ERROR_CODE::GRAB_TIMEOUT) {
+                continue;
+            }
+            if (status != ef::ERROR_CODE::SUCCESS) {
+                break;
+            }
+
+            device.retrieve_image(frame, ef::VIEW::NV12);
+            device.retrieve_imu(imu);
+            ++count;
+
+            std::cout << "frame " << frame.getFrameId()
+                      << ", imu samples " << imu.samples.size() << "\n";
+        }
+
+        device.close();
+        return 0;
+    }
+    ```
+  </Tab>
+</Tabs>

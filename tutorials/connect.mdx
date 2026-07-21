@@ -1,0 +1,64 @@
+---
+title: "Connect to a Device"
+description: "Open an M1 and read its identity over USB or Bluetooth LE"
+---
+
+Open the M1 and print its serial, model, and firmware version.
+
+<Tabs>
+  <Tab title="Wired">
+    USB is the default connection.
+
+    ```cpp
+    #include <iostream>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::Device device;
+        ef::ERROR_CODE status = device.open();
+        if (status != ef::ERROR_CODE::SUCCESS) {
+            std::cerr << ef::to_string(status) << "\n";
+            return 1;
+        }
+
+        ef::DeviceInformation info = device.get_device_information();
+        std::cout << "Serial: " << info.serial << "\n"
+                  << "Model: " << ef::to_string(info.model) << "\n"
+                  << "Firmware: " << info.firmware_version << "\n";
+
+        device.close();
+        return 0;
+    }
+    ```
+  </Tab>
+  <Tab title="Wireless">
+    Use the M1's BLE address. This opens a control-only session.
+
+    ```cpp
+    #include <iostream>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::InitParameters init;
+        init.input_type = ef::INPUT_TYPE::STREAM;
+        init.ble_address = "AA:BB:CC:DD:EE:FF";
+        init.ble_password = "123456";
+
+        ef::Device device;
+        ef::ERROR_CODE status = device.open(init);
+        if (status != ef::ERROR_CODE::SUCCESS) {
+            std::cerr << ef::to_string(status) << "\n";
+            return 1;
+        }
+
+        ef::DeviceInformation info = device.get_device_information();
+        std::cout << "Serial: " << info.serial << "\n"
+                  << "Model: " << ef::to_string(info.model) << "\n"
+                  << "Firmware: " << info.firmware_version << "\n";
+
+        device.close();
+        return 0;
+    }
+    ```
+  </Tab>
+</Tabs>

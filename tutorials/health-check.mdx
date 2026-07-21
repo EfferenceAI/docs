@@ -1,0 +1,73 @@
+---
+title: "Run a Health Check"
+description: "Run device diagnostics over USB or Bluetooth LE"
+---
+
+Run the normal health sweep and print each check. Pass `true` to
+`health_check()` for the deep stress tier.
+
+<Tabs>
+  <Tab title="Wired">
+    ```cpp
+    #include <iostream>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::Device device;
+        if (device.open() != ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        ef::HealthStatus health;
+        ef::ERROR_CODE status = device.health_check(health);
+        if (status != ef::ERROR_CODE::SUCCESS) {
+            std::cerr << ef::to_string(status) << "\n";
+            return 1;
+        }
+
+        for (const ef::HealthCheck& check : health.checks) {
+            std::cout << (check.passed ? "PASS " : "FAIL ")
+                      << check.name << " " << check.detail << "\n";
+        }
+
+        device.close();
+        return health.passed ? 0 : 1;
+    }
+    ```
+  </Tab>
+  <Tab title="Wireless">
+    A control-only BLE session is sufficient.
+
+    ```cpp
+    #include <iostream>
+    #include <ef/Device.hpp>
+
+    int main() {
+        ef::InitParameters init;
+        init.input_type = ef::INPUT_TYPE::STREAM;
+        init.ble_address = "AA:BB:CC:DD:EE:FF";
+        init.ble_password = "123456";
+
+        ef::Device device;
+        if (device.open(init) != ef::ERROR_CODE::SUCCESS) {
+            return 1;
+        }
+
+        ef::HealthStatus health;
+        ef::ERROR_CODE status = device.health_check(health);
+        if (status != ef::ERROR_CODE::SUCCESS) {
+            std::cerr << ef::to_string(status) << "\n";
+            return 1;
+        }
+
+        for (const ef::HealthCheck& check : health.checks) {
+            std::cout << (check.passed ? "PASS " : "FAIL ")
+                      << check.name << " " << check.detail << "\n";
+        }
+
+        device.close();
+        return health.passed ? 0 : 1;
+    }
+    ```
+  </Tab>
+</Tabs>
