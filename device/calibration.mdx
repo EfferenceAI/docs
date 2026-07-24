@@ -1,0 +1,148 @@
+---
+title: "Calibration"
+description: "Camera intrinsics and IMU field calibration, and how they reach a recording"
+---
+
+The M1 carries two independent calibrations: the camera intrinsics and the IMU
+field calibration. Both are stored on the device, both are read back through
+`get_device_information()`, and both travel with every recording as metadata.
+
+Solving either one is a host-side job. The SDK ships a runnable tutorial for
+each, under `tutorials/`, which walks the capture, fits the model, and offers
+to write the result to the device.
+
+<Note>
+Writing a calibration requires the device to be `IDLE`, and takes effect from
+the next capture session.
+</Note>
+
+## Camera intrinsics
+
+The camera uses a double-sphere model: `fx`, `fy`, `cx`, `cy`, `xi`, `alpha`,
+recorded together with the width and height they were calibrated at.
+
+Build the tutorials, then run the camera one against a checkerboard:
+
+```sh
+./build.sh --tutorials
+./tutorials/calibrate_camera/cpp/build/calibrate_camera        # default 11x8 board
+./tutorials/calibrate_camera/cpp/build/calibrate_camera --pattern 9x6 --square-size 25.0
+```
+
+- `--pattern WxH` — inner-corner count of your board; default `11x8`
+- `--square-size MM` — physical square size, for metric output; default is unit
+  squares
+- `--ble MAC` — control over Bluetooth LE instead of USB
+
+It shows the live feed with a detection overlay, captures 40 views as you move
+the board, fits the model with `xi` held at 0, and prints the intrinsics with
+their 1-sigma uncertainty and the RMS reprojection error. It then offers to
+push the result to the device.
+
+For a usable fit, move the board across the whole frame — center, every edge
+and corner, near and far — and tilt it between captures. Forty near-identical
+frontal views fit poorly.
+
+This tutorial needs OpenCV and the prebuilt `libcamera_cal.so` for your
+architecture, in `sdk/linux/lib/<arch>/`. It is skipped on architectures
+without that library.
+
+### On-device rectification
+
+Intrinsics are always published as recording metadata, so a host consumer can
+undistort for itself. The device can instead do it in hardware:
+
+```sh
+ef-cli calibration --camera --rectify on
+ef-cli calibration --camera --rectify on --fov-scale 0.8
+```
+
+With `rectify` on, recordings ship rectilinear frames rather than raw fisheye.
+It is off by default and needs FEC firmware. `--fov-scale` sets the rectified
+field of view: `1.0` matches the lens focal length, below 1 is wider (more
+periphery, with black corners), above 1 zooms the center.
+
+Both flags can be changed without re-entering the intrinsics — the CLI reads
+the current calibration, changes only what you named, and sends it back.
+
+## IMU field calibration
+
+The IMU model is `a* = M·S·(x − b)`: a per-sensor bias `b`, and a 3x3
+scale-misalignment folding `M` and `S` together.
+
+```sh
+./tutorials/calibrate_imu/cpp/build/calibrate_imu              # USB
+./tutorials/calibrate_imu/cpp/build/calibrate_imu --ble AA:BB:CC:DD:EE:FF
+```
+
+It runs in two steps. First hold the device still, which measures the gyro
+zero-bias. Then rotate it slowly through every orientation — all faces, edges
+and corners — which fits the accelerometer ellipsoid. It prints the resulting
+bias and scale terms.
+
+A run with too little rotational coverage, or one where the device was not
+still for the gyro step, is rejected rather than written. Re-run it; do not
+try to persist a poor solve.
+
+This tutorial needs the prebuilt `libimu_cal.so` for your architecture, in
+`sdk/linux/lib/<arch>/`.
+
+### How recordings carry it
+
+`IMU_DATA` selects what the device writes:
+
+- `RAW` (default) — record uncalibrated samples, and carry the calibration
+  parameters as metadata. The consumer applies the model.
+- `CALIBRATED` — the device applies `M·S·(x − b)` to each sample before
+  recording.
+- `BOTH` — emit the raw stream plus a pre-applied `*_calibrated` stream.
+
+```sh
+ef-cli calibration --imu --mode calibrated
+```
+
+Every recording carries the calibration as metadata whichever mode is set. In
+`CALIBRATED` the embedded parameters are marked as already applied, so a
+downstream consumer cannot double-apply them.
+
+## Read it back
+
+```sh
+ef-cli calibration --get
+```
+
+From C++, both calibrations come off the cached device information:
+
+```cpp
+DeviceInformation info = dev.get_device_information();
+
+CalibrationParameters cam = info.camera_configuration.calibration;
+// cam.fx, cam.fy, cam.cx, cam.cy, cam.xi, cam.alpha
+// cam.width, cam.height, cam.rectify, cam.fov_scale
+
+SensorsConfiguration s = info.sensors_configuration;
+// s.accel_bias, s.gyro_bias
+// s.accel_scale_misalign, s.gyro_scale_misalign   (3x3, row-major)
+// s.camera_imu_transform                          (4x4, camera -> IMU)
+// s.time_offset_ns
+```
+
+## Write and reset
+
+```cpp
+ERROR_CODE set_camera_calibration(const CalibrationParameters& calibration,
+                                  int width, int height);
+ERROR_CODE set_imu_calibration(const ImuCalibrationParameters& calibration);
+ERROR_CODE reset_calibration(bool camera, bool imu = false);
+```
+
+`ImuCalibrationParameters` defaults every field to the identity map, so a
+partially filled struct is safe to send.
+
+```sh
+ef-cli calibration --camera --reset
+ef-cli calibration --imu --reset
+```
+
+Reset restores the factory default. The camera factory default is currently
+all zeros, meaning uncalibrated.
