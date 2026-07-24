@@ -32,6 +32,18 @@ ef-cli config                 # enabled capture modes + current configuration
 ef-cli config set 1920 1200 30 h265   # persist a capture config (idle only)
 ```
 
+### Calibration
+
+```sh
+ef-cli calibration [--get]            # show camera + IMU calibration
+ef-cli calibration --camera --set <fx> <fy> <cx> <cy> <xi> <alpha> <W> <H> [--rectify on|off] [--fov-scale <s>]
+                                      # set camera intrinsics (idle only; always
+                                      # published as metadata, --rectify toggles
+                                      # on-device FEC rectification)
+ef-cli calibration --imu --mode <raw|calibrated|both>   # on-device IMU handling for the session
+ef-cli calibration [--camera|--imu] --reset             # reset to factory default
+```
+
 ### Health
 
 ```sh
@@ -73,6 +85,7 @@ ef-cli abort-update
 ef-cli wifi add <ssid> <psk> [country]
 ef-cli wifi remove <ssid> | select <ssid> | status
 ef-cli wifi list                       # saved networks (marks the connected one)
+ef-cli wifi scan                       # access points in range (not while recording)
 ef-cli set-password <new>              # rekey BLE password (over USB)
 ef-cli set-password <old> <new>        # rekey over BLE
 ef-cli sync-time                       # set the device clock from the host

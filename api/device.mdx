@@ -41,6 +41,19 @@ capability menu (`INVALID_RESOLUTION` / `INVALID_FPS` /
 not stop a device-local recording. `get_state()`
 returns the last known `DEVICE_STATE` and never blocks.
 
+```cpp
+bool poll_fault(std::string* reason = nullptr);
+```
+Refresh the device state from the firmware state machine (so a following
+`get_state()` is fresh too) and report whether a fault is latched. A latched
+device has entered SAFE and needs a health-gated recovery; because the
+`DEVICE_STATE` enum has no fault value it projects `CLOSED`, so `poll_fault` is
+how you tell a fault-closed device from a not-open one. When `reason` is set it
+receives the most recent anomaly cause, populated both for a latched fault and
+for an abnormal session end (for example `disk_full`, `capture_stopped`), and
+empty once a clean session starts, so check `reason` even when the return is
+`false`.
+
 ## Data plane
 
 ```cpp
@@ -119,6 +132,7 @@ ERROR_CODE wifi_add(const std::string& ssid, const std::string& psk,
                     const std::string& country = "");   // "US" unlocks 5 GHz
 ERROR_CODE wifi_remove(const std::string& ssid);
 ERROR_CODE wifi_select(const std::string& ssid);
+ERROR_CODE scan_wifi_networks(std::vector<WifiNetwork>& out);   // DEVICE_BUSY while recording/streaming
 
 ERROR_CODE set_ble_password(const std::string& old_password,
                             const std::string& new_password);
@@ -132,5 +146,29 @@ ERROR_CODE get_location(Location& out);
 
 ERROR_CODE set_configuration(int width, int height, int fps,
                              COMPRESSION_MODE codec);   // persisted; IDLE only
+ERROR_CODE set_configuration(int width, int height, int fps,
+                             COMPRESSION_MODE codec, IMU_DATA imu_data);
 ERROR_CODE reboot();
 ```
+The `IMU_DATA` overload also selects on-device IMU handling for the session:
+`RAW` records uncalibrated samples (the default), `CALIBRATED` applies the stored
+`M*S*(x-b)` per sample, and `BOTH` emits both.
+
+## Calibration
+
+```cpp
+ERROR_CODE set_camera_calibration(const CalibrationParameters& calibration,
+                                  int width, int height);
+ERROR_CODE set_imu_calibration(const ImuCalibrationParameters& calibration);
+ERROR_CODE reset_calibration(bool camera, bool imu = false);
+```
+All three are `IDLE` only and take effect on the next capture session.
+`set_camera_calibration` persists the Double Sphere intrinsics produced by the
+OpenCV calibration tool; read them back through
+`get_device_information().camera_configuration.calibration`.
+`set_imu_calibration` persists the IMU field calibration (bias, `M*S`, per-sensor
+noise and temporal terms, the camera-to-IMU transform, and the time offset) from
+the host-side solve, and round-trips through
+`get_device_information().sensors_configuration`. `reset_calibration` restores the
+factory default for the selected sensors; the camera factory default is all zeros
+(uncalibrated).

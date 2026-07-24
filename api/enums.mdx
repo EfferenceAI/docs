@@ -34,6 +34,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `INVALID_PASSWORD` | BLE password rejected |
 | `INSUFFICIENT_PERMISSIONS` | USB access denied — install the udev rule |
 | `UNSUPPORTED` | not supported in this build |
+| `DEVICE_BUSY` | device busy (recording or livestreaming); retry once idle |
 
 ### 40–59 · Sensor parameters & calibration
 | Value | Meaning |
@@ -49,6 +50,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `CANNOT_START_CAMERA_STREAM` | stream would not start (in use?) |
 | `COMMUNICATION_ERROR` | a control round trip failed |
 | `WIFI_NOT_CONNECTED` | operation needs WiFi; device not associated |
+| `INSUFFICIENT_WIFI_BANDWIDTH` | selected format too large for the WiFi/UDP link (e.g. raw NV12); use an encoded codec, or stream raw over USB |
 
 ### 80–99 · Streaming & recording
 | Value | Meaning |
@@ -69,6 +71,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `INPUT_TYPE` | `USB`, `STREAM`, `MCAP` | transport in `InitParameters` |
 | `RESOLUTION` | `HD1200` (1920×1200), `HD1080` (1920×1080), `SVGA` (960×600), `AUTO` | `AUTO` = device native |
 | `COMPRESSION_MODE` | `RAW`, `H264`, `H264_HQ`, `H265`, `H265_HQ` | `_HQ` = near-lossless tier |
+| `IMU_DATA` | `RAW`, `CALIBRATED`, `BOTH` | on-device IMU handling for a session; `RAW` records uncalibrated and carries the calibration as metadata, `CALIBRATED` applies `M*S*(x-b)` per sample, `BOTH` emits both |
 | `FLIP_MODE` | `ON`, `OFF`, `AUTO` | `AUTO` decides from IMU gravity |
 | `VIEW` | `GRAY`, `BGR`, `RGB`, `BGRA`, `RGBA`, `NV12` | `retrieve_image()` output format |
 | `MAT_TYPE` | `U8_C1`, `U8_C3`, `U8_C4`, `NV12` | element layout of a `Mat` |
@@ -90,7 +93,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 |---|---|---|
 | `RECORDING_TARGET` | `HOST_FILE`, `DEVICE_LOCAL` | device-local survives host disconnect |
 | `UPLOAD_STATE` | `RUNNING`, `OFF` | failures surface as `ERROR_CODE` |
-| `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING` | firmware update phases |
+| `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING`, `CHECKING`, `UPLOADING`, `REBOOTING`, `RECONNECTING` | firmware update phases; 0–3 are the apply sequence, `CHECKING` reads the manifest, `UPLOADING` pushes a local `.eff`, `REBOOTING`/`RECONNECTING` cross the reboot |
 | `MODEL` | `M1` | |
 | `SENSOR_TYPE` | `ACCELEROMETER`, `GYROSCOPE` | |
 | `SENSOR_UNIT` | `M_SEC_2`, `DEG_SEC`, `CELSIUS`, `HERTZ` | |
