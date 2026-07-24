@@ -89,14 +89,21 @@ ef::Device device;
 ef::ERROR_CODE status = device.open(init);
 ```
 
-The M1 cannot infer the host IP over BLE. Both devices must be on a reachable
-network, and the host firewall must permit the selected UDP port.
+The M1 cannot infer the host IP, so `udp_host` is always required for a
+wireless data plane. Setting it selects WiFi/UDP for the data regardless of
+which control transport you opened with — so a USB session can also push video
+and IMU to a remote host. BLE *without* `udp_host` has no data plane at all,
+because isochronous video needs USB.
+
+The M1 and the host must be mutually reachable on the network, and the host
+firewall must permit the selected UDP port.
 
 ## Session behavior
 
 `open()` claims the control transport, validates capture settings, aligns the
 device clock, and caches device information. It normally leaves the handle in
-`IDLE`; existing device activity may report `STREAMING`.
+`IDLE`; if the device is already busy, the handle may report `STREAMING`
+instead.
 
 The first `grab()` starts the USB or WiFi/UDP data plane. Control-only work
 therefore does not start an unnecessary live stream.

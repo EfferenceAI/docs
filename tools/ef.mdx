@@ -17,7 +17,7 @@ ef-cli [--ble <MAC>] [--device <id>] [--password <pw>] [--udp <host[:port]>] [--
 | `--ble <MAC>` | connect over Bluetooth LE instead of USB |
 | `--device <id>` | pick one of several USB devices |
 | `--password <pw>` | BLE control password (factory default `123456`) |
-| `--udp <host[:port]>` | with `--ble`: device streams to this host over WiFi/UDP |
+| `--udp <host[:port]>` | device streams video and IMU to this host over WiFi/UDP; works with USB or `--ble` control (default port 5005) |
 | `--verbose` | print control traffic |
 
 ## Commands

@@ -62,9 +62,46 @@ After installation, run `./build.sh` to rebuild without changing packages or
 USB permissions.
 </Note>
 
+## Put `ef-cli` on your PATH
+
+The examples throughout these docs use the full path
+`./sdk/linux/build/ef-cli`, which always works and needs no setup. Two ways to
+shorten it:
+
+```sh
+source ./env.sh                 # this shell only
+./build.sh --install            # install to /usr/local (sudo, once)
+```
+
+`source ./env.sh` also sets `CMAKE_PREFIX_PATH` so the bundled tutorials
+resolve `find_package(ef)`. It affects the current shell only; add the line to
+your `~/.bashrc` to make it stick, or use `--install` to skip sourcing
+entirely.
+
+## Other build options
+
+```sh
+./build.sh                      # rebuild; never touches /etc
+./build.sh clean                # wipe the build directory first
+./build.sh --udev               # install just the USB rule (sudo), then exit
+./build.sh --tutorials          # also build every bundled tutorial
+```
+
+`--udev` is the one to reach for if you built without `--deps` and hit
+`INSUFFICIENT_PERMISSIONS`.
+
 ## Linking against the SDK
 
-Add the SDK as a subdirectory, or install it and link against `ef::ef`:
+Link against the `ef::ef` target. With the SDK built in place, point CMake at
+the build tree — `source ./env.sh` does this for you — and use
+`find_package()`:
+
+```cmake
+find_package(ef REQUIRED)
+target_link_libraries(my_app PRIVATE ef::ef)
+```
+
+Or add the SDK to your own tree as a subdirectory:
 
 ```cmake
 add_subdirectory(efference/sdk/linux)
@@ -74,6 +111,11 @@ target_link_libraries(my_app PRIVATE ef::ef)
 ```cpp
 #include <ef/Device.hpp>
 ```
+
+The bundled tutorials under `tutorials/` are the working template — one
+runnable project per topic, each building standalone against the SDK. Build
+them all with `./build.sh --tutorials`, or run the `build.sh` inside any single
+tutorial directory.
 
 ## Next step
 

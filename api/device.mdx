@@ -9,8 +9,9 @@ owns one device session).
 Key behavior:
 
 - `open()` claims and configures a live device, caches its identity, and
-  normally leaves it ready in `IDLE` (existing device activity may report
-  `STREAMING`). The first `grab()` starts the USB or WiFi/UDP data plane.
+  normally leaves it ready in `IDLE` (if the device is already busy, it may
+  report `STREAMING`). The first `grab()` starts the USB or WiFi/UDP data
+  plane.
   MCAP replay creates its reader during `open()`.
 - Calls that touch the wire return `ERROR_CODE`; data comes back through
   `out` parameters. `get_*` methods without an `ERROR_CODE` never block —
