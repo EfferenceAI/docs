@@ -29,22 +29,22 @@ reachable by the M1 over WiFi.
 <Steps>
   <Step title="Find the device">
     ```sh
-    ./sdk/linux/build/ef list --scan-ble
+    ./sdk/linux/build/ef-cli list --scan-ble
     ```
     Note the MAC address advertised by `Efference M1`.
   </Step>
   <Step title="Control over BLE">
     ```sh
-    ./sdk/linux/build/ef --ble AA:BB:CC:DD:EE:FF info
+    ./sdk/linux/build/ef-cli --ble AA:BB:CC:DD:EE:FF info
     ```
     The factory control password is `123456`. Pass `--password` after rekeying
     the device.
   </Step>
   <Step title="Provision WiFi (once)">
     ```sh
-    ./sdk/linux/build/ef --ble AA:BB:CC:DD:EE:FF \
+    ./sdk/linux/build/ef-cli --ble AA:BB:CC:DD:EE:FF \
       wifi add MyNetwork MyPassphrase US
-    ./sdk/linux/build/ef --ble AA:BB:CC:DD:EE:FF wifi status
+    ./sdk/linux/build/ef-cli --ble AA:BB:CC:DD:EE:FF wifi status
     ```
     Use the ISO country code for the network's regulatory domain.
   </Step>

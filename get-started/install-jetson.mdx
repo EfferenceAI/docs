@@ -36,11 +36,11 @@ The Linux SDK builds directly on an NVIDIA Jetson running JetPack.
   </Step>
   <Step title="Verify the connection">
     ```sh
-    ./sdk/linux/build/ef list
-    ./sdk/linux/build/ef info
+    ./sdk/linux/build/ef-cli list
+    ./sdk/linux/build/ef-cli info
     ```
 
-    The M1 should appear in the device list, and `ef info` should print its
+    The M1 should appear in the device list, and `ef-cli info` should print its
     serial, firmware, capture modes, and sensor configuration.
   </Step>
 </Steps>

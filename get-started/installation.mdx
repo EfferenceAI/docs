@@ -40,13 +40,13 @@ hosts and device requirements.
   </Step>
   <Step title="Verify the installation">
     ```sh
-    ./sdk/linux/build/ef list
-    ./sdk/linux/build/ef info
+    ./sdk/linux/build/ef-cli list
+    ./sdk/linux/build/ef-cli info
     ```
 
-    `ef list` should discover the connected M1. `ef info` prints its serial,
-    firmware version, capture modes, camera configuration, IMU parameters,
-    and wireless status.
+    `ef-cli list` should discover the connected M1. `ef-cli info` prints its
+    serial, firmware version, capture modes, camera configuration, IMU
+    parameters, and wireless status.
   </Step>
 </Steps>
 
@@ -54,7 +54,7 @@ The binaries are written to `sdk/linux/build/`:
 
 | Tool | Purpose |
 |---|---|
-| `ef` | Device discovery, configuration, health, recording, WiFi, and updates |
+| `ef-cli` | Device discovery, configuration, health, recording, WiFi, and updates |
 | `efference-viewer` | Decoded live video with IMU status |
 
 <Note>
@@ -64,7 +64,7 @@ USB permissions.
 
 ## Linking against the SDK
 
-Add the SDK as a subdirectory, or install it and link `ef`:
+Add the SDK as a subdirectory, or install it and link against `ef::ef`:
 
 ```cmake
 add_subdirectory(efference/sdk/linux)
