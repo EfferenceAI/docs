@@ -51,6 +51,7 @@
               "get-started/requirements",
               "get-started/installation",
               "get-started/install-jetson",
+              "get-started/quickstart-wired",
               "get-started/quickstart-wireless"
             ]
           },
