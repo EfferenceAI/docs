@@ -62,19 +62,6 @@ After installation, run `./build.sh` to rebuild without changing packages or
 USB permissions.
 </Note>
 
-## Linking against the SDK
-
-Add the SDK as a subdirectory, or install it and link against `ef::ef`:
-
-```cmake
-add_subdirectory(efference/sdk/linux)
-target_link_libraries(my_app PRIVATE ef::ef)
-```
-
-```cpp
-#include <ef/Device.hpp>
-```
-
 ## Next step
 
 Continue with [Connection & Lifecycle](/device/connection), or set up
