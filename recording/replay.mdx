@@ -37,9 +37,11 @@ Replay differs from a live session in four ways:
 - Timestamps are the original capture timestamps from the recording.
 
 Both host-file and device-local recordings replay identically — they share
-one schema. Recordings also open directly in Foxglove. To convert a session
-to a standard video file, use the bundled script:
+one schema. Recordings also open directly in Foxglove. To extract the raw
+H.264/H.265 elementary stream from a session, use the bundled script:
 
 ```sh
-python3 sdk/linux/tools/mcap_to_video.py session.mcap session.mp4
+python3 sdk/linux/tools/mcap_to_video.py session.mcap session.h265
 ```
+The script writes an elementary stream, not a container. Wrap it to get a
+playable file, for example `ffmpeg -i session.h265 -c copy session.mp4`.

@@ -16,6 +16,7 @@ the SDK is the sole producer — and consumers read through accessors:
 | `getWidth()` / `getHeight()` / `getResolution()` | `int` / `Resolution` | frame geometry |
 | `getDataType()` | `MAT_TYPE` | element layout (`U8_C1/C3/C4`, `NV12`) |
 | `getView()` | `VIEW` | the view it was retrieved as |
+| `getMemoryType()` | `MEM` | destination memory (`CPU`; `GPU` unsupported) |
 | `getStep()` | `int` | bytes per row (first plane) |
 | `getSizeInBytes()` | `size_t` | total buffer size |
 | `isInit()` | `bool` | whether a buffer is allocated |
@@ -57,6 +58,7 @@ struct DeviceInformation {
     unsigned int serial_number;      // numeric form; 0 when not numeric
     MODEL        model;
     unsigned int firmware_version;
+    std::string  firmware_version_str;    // human-readable "XX.XX.XX"
     INPUT_TYPE   input_type;
     CameraConfiguration  camera_configuration;    // resolution, fps, codec, calibration
     SensorsConfiguration sensors_configuration;   // IMU params + extrinsics
@@ -95,9 +97,10 @@ struct RecordingStatus {
 
 struct UpdateStatus {
     bool         active;
-    UPDATE_STATE state;              // DOWNLOADING / VERIFYING / READY_TO_APPLY / APPLYING
+    UPDATE_STATE state;              // current UPDATE_STATE phase
     int          progress;           // 0-100, -1 indeterminate
     std::string  message;
+    std::string  running_version;    // human-readable current firmware
     uint32_t     running_version_int, target_version_int;
     ERROR_CODE   last_error;
 };
