@@ -55,8 +55,10 @@ Returns `SUCCESS`, `GRAB_TIMEOUT` (non-fatal, loop), `CORRUPTED_FRAME`
 ```cpp
 ERROR_CODE retrieve_image(Mat& mat, VIEW view = VIEW::NV12);
 ```
-Decode/convert the grabbed frame into `mat` in the requested `VIEW`. Views
-other than `NV12` require the FFmpeg build. The `Mat` owns its buffer.
+Decode/convert the grabbed frame into `mat` in the requested `VIEW`. The `Mat`
+owns its buffer. Without the FFmpeg build the only supported combination is a
+`COMPRESSION_MODE::RAW` session retrieved as `VIEW::NV12`; anything else
+returns `UNSUPPORTED_COMPRESSION`.
 
 ```cpp
 ERROR_CODE retrieve_imu(SensorsData& data,

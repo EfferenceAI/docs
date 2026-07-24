@@ -76,8 +76,13 @@ device's persistent boot configuration instead, stop live work and call
 | `RGB` / `BGR` | packed 3-channel | OpenCV (`BGR` is its native order) |
 | `GRAY` | single channel | feature tracking |
 
-Any view except `NV12` requires FFmpeg. The bundled `<ef/opencv.hpp>` header
-provides a zero-copy OpenCV view:
+Decoding and pixel-format conversion both need FFmpeg. Built without it, the
+only working combination is `COMPRESSION_MODE::RAW` retrieved as `VIEW::NV12`;
+everything else returns `UNSUPPORTED_COMPRESSION` — including `NV12` itself
+when the session uses an encoded codec, which is the default. The standard
+`./build.sh --deps` install includes FFmpeg.
+
+The bundled `<ef/opencv.hpp>` header provides a zero-copy OpenCV view:
 
 ```cpp
 #include <ef/opencv.hpp>

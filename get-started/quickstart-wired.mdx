@@ -17,7 +17,7 @@ Everything in this guide uses the USB cable only — no WiFi or Bluetooth setup.
   </Step>
   <Step title="Device information">
     ```sh
-    ef-cli info
+    ./sdk/linux/build/ef-cli info
     ```
     Serial, firmware version, enabled capture modes, camera calibration, IMU
     noise densities, and WiFi/BT MAC addresses — everything cached by the SDK
@@ -25,14 +25,14 @@ Everything in this guide uses the USB cable only — no WiFi or Bluetooth setup.
   </Step>
   <Step title="Health check">
     ```sh
-    ef-cli health          # quick sweep
-    ef-cli health --deep   # + ~2 min stress tier
+    ./sdk/linux/build/ef-cli health          # quick sweep
+    ./sdk/linux/build/ef-cli health --deep   # + ~2 min stress tier
     ```
     Each probe prints `PASS` / `FAIL` with detail.
   </Step>
   <Step title="Live video">
     ```sh
-    efference-viewer
+    ./sdk/linux/build/efference-viewer
     ```
     A window opens with the decoded stream and a status bar with live IMU
     values. `Q` or `Esc` quits.
