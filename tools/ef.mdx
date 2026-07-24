@@ -38,6 +38,23 @@ ef-cli config set 1920 1200 30 h265   # persist a capture config (idle only)
 ef-cli health [--deep]        # on-device sweep; --deep adds the stress tier
 ```
 
+### Calibration
+
+```sh
+ef-cli calibration [--get]         # show the camera + IMU calibration
+ef-cli calibration --camera --set <fx> <fy> <cx> <cy> <xi> <alpha> <W> <H> \
+                   [--rectify on|off] [--fov-scale <s>]
+                                   # set the double-sphere intrinsics (idle only)
+ef-cli calibration --imu --mode <raw|calibrated|both>
+                                   # how recordings carry the IMU calibration
+ef-cli calibration [--camera|--imu] --reset   # restore the factory default
+```
+
+Intrinsics are always published as recording metadata. `--rectify on` makes
+the device undistort frames itself, so recordings ship rectilinear rather than
+raw fisheye; it needs FEC firmware and is off by default. `--fov-scale` sets
+the rectified field of view (default `1.0`; below 1 is wider, above 1 zooms).
+
 ### Recording
 
 ```sh
@@ -73,6 +90,7 @@ ef-cli abort-update
 ef-cli wifi add <ssid> <psk> [country]
 ef-cli wifi remove <ssid> | select <ssid> | status
 ef-cli wifi list                       # saved networks (marks the connected one)
+ef-cli wifi scan                       # access points in range (not while recording)
 ef-cli set-password <new>              # rekey BLE password (over USB)
 ef-cli set-password <old> <new>        # rekey over BLE
 ef-cli sync-time                       # set the device clock from the host

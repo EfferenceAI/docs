@@ -9,11 +9,16 @@ angular velocity.
 ```
 efference-viewer [--codec raw|h264|h264hq|h265|h265hq]
                  [--ble MAC] [--password PW] [--udp HOST[:PORT]]
-                 [--flip on|off|auto]
+                 [--flip on|off|auto] [--headless]
 ```
 
 - **Wired:** run without connection flags; USB is the default.
 - **Wireless:** pass `--ble <MAC> --udp <linux-host-ip>`.
+- **Headless:** `--headless` (alias `--no-window`) holds the session open
+  without a window, printing a heartbeat once a second. Pair it with `--udp`
+  to make the device push video and IMU to a remote host with no local
+  display. `--flip` is a display-only transform, so it has no effect on a
+  forwarded stream — the receiver applies its own.
 - **Quit:** press `Q` or `Esc`, close the window, or press Ctrl-C.
 
 This tool requires an SDK built with OpenCV and FFmpeg, both installed by the

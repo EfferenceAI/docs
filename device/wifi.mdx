@@ -25,9 +25,9 @@ dev.wifi_select("MyNetwork");     // prefer among saved networks
 
 ## Read the connection state
 
-WiFi status lives in the wireless block of the device information and
-is cached when `open()` succeeds. WiFi add/remove/select calls refresh that
-cached block after the command is accepted:
+WiFi status is exposed through the `wireless` field of `DeviceInformation`,
+cached when `open()` succeeds. WiFi add/remove/select calls refresh that cached
+block after the command is accepted:
 
 ```cpp
 WirelessConfiguration w = dev.get_device_information().wireless;
@@ -41,6 +41,13 @@ WirelessConfiguration w = dev.get_device_information().wireless;
 asynchronous, the first snapshot after `wifi_add()` may still show
 `connecting`.
 
+`wifi_state` is a string carrying the association phase: `connected`,
+`connecting`, `disconnected`, or `auth_failed`. Treat `auth_failed` as a
+rejected passphrase rather than a transient failure — the device will not retry
+its way out of it, so re-add the network with the correct credentials.
+Firmware predating this field leaves it empty, in which case the SDK derives
+`connected` or `disconnected` from `wifi_connected`.
+
 ## From the CLI
 
 ```sh
@@ -48,6 +55,7 @@ ef-cli --ble AA:BB:CC:DD:EE:FF wifi add MyNetwork MyPassphrase US
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi select MyNetwork
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi status
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi list
+ef-cli --ble AA:BB:CC:DD:EE:FF wifi scan
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi remove MyNetwork
 ```
 

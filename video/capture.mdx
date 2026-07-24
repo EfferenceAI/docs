@@ -82,10 +82,10 @@ everything else returns `UNSUPPORTED_COMPRESSION` — including `NV12` itself
 when the session uses an encoded codec, which is the default. The standard
 `./build.sh --deps` install includes FFmpeg.
 
-The bundled `<ef/opencv.hpp>` header provides a zero-copy OpenCV view:
+The bundled `<ef/OpenCV.hpp>` header provides a zero-copy OpenCV view:
 
 ```cpp
-#include <ef/opencv.hpp>
+#include <ef/OpenCV.hpp>
 
 dev.retrieve_image(image, VIEW::BGR);   // BGR = OpenCV's native channel order
 cv::Mat frame = ef::toCvMat(image);     // zero-copy view, no conversion
