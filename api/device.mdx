@@ -36,10 +36,25 @@ DEVICE_STATE   get_state() const;
 ```
 `open()` validates the session configuration against the device's enabled
 capability menu (`INVALID_RESOLUTION` / `INVALID_FPS` /
-`UNSUPPORTED_COMPRESSION`), syncs the device clock, and prepares capture.
+`UNSUPPORTED_COMPRESSION`), syncs the device clock, and prepares capture. A
+`COMPRESSION_MODE::RAW` session with a `udp_host` set is rejected up front with
+`INSUFFICIENT_WIFI_BANDWIDTH`: raw NV12 runs about 830 Mbit/s at 1200p30, which
+the WiFi link cannot carry. Stream raw over USB, or pick an encoded codec.
 `close()` stops any host-file recording and releases the transport. It does
-not stop a device-local recording. `get_state()`
-returns the last known `DEVICE_STATE` and never blocks.
+not stop a device-local recording. `get_state()` returns the last known
+`DEVICE_STATE` and never blocks.
+
+```cpp
+bool poll_fault(std::string* reason = nullptr);
+```
+Refresh the device state and report whether a fault is **latched** — the device
+has entered SAFE and needs a health-gated recovery. `DEVICE_STATE` has no
+`FAULT` value, so a latched device reports `CLOSED`; `poll_fault()` is how you
+tell that apart from a handle that was simply never opened. When `reason` is
+non-null it also receives the most recent anomaly cause for an *unlatched*
+abnormal session end (`disk_full`, `capture_stopped`, and similar), so check
+`reason` even when the return is `false`. Best-effort: on a comms failure it
+reports the last known cached values.
 
 ## Data plane
 
@@ -64,7 +79,10 @@ returns `UNSUPPORTED_COMPRESSION`.
 ERROR_CODE retrieve_imu(SensorsData& data,
                         TIME_REFERENCE ref = TIME_REFERENCE::IMAGE);
 ```
-Drain queued IMU samples in chronological order.
+Drain queued IMU samples in chronological order. `ref` selects how much is
+kept: `IMAGE` (the default) returns the whole batch queued against the grabbed
+frame, while `CURRENT` **discards every sample but the newest**. Use `IMAGE`
+whenever you care about the samples between frames.
 
 ```cpp
 Timestamp get_timestamp(TIME_REFERENCE ref = TIME_REFERENCE::CURRENT) const;
@@ -119,6 +137,7 @@ ERROR_CODE wifi_add(const std::string& ssid, const std::string& psk,
                     const std::string& country = "");   // "US" unlocks 5 GHz
 ERROR_CODE wifi_remove(const std::string& ssid);
 ERROR_CODE wifi_select(const std::string& ssid);
+ERROR_CODE scan_wifi_networks(std::vector<WifiNetwork>& out);  // DEVICE_BUSY while busy
 
 ERROR_CODE set_ble_password(const std::string& old_password,
                             const std::string& new_password);
@@ -132,5 +151,28 @@ ERROR_CODE get_location(Location& out);
 
 ERROR_CODE set_configuration(int width, int height, int fps,
                              COMPRESSION_MODE codec);   // persisted; IDLE only
+ERROR_CODE set_configuration(int width, int height, int fps,
+                             COMPRESSION_MODE codec, IMU_DATA imu_data);
 ERROR_CODE reboot();
 ```
+`scan_wifi_networks()` returns the access points in range, strongest first, and
+gives `DEVICE_BUSY` while recording or livestreaming — a scan would disrupt the
+link, so retry once the device is idle.
+
+The five-argument `set_configuration()` also selects how the session records
+IMU samples; see `IMU_DATA`.
+
+## Calibration
+
+```cpp
+ERROR_CODE set_camera_calibration(const CalibrationParameters& calibration,
+                                  int width, int height);
+ERROR_CODE set_imu_calibration(const ImuCalibrationParameters& calibration);
+ERROR_CODE reset_calibration(bool camera, bool imu = false);
+```
+Persist the camera intrinsics (double-sphere) or the IMU field calibration.
+Both are `IDLE` only and apply from the next capture session. Read them back
+through `get_device_information()` — `camera_configuration.calibration` and
+`sensors_configuration` respectively. The calibration always travels with a
+recording as metadata; `IMU_DATA::CALIBRATED` additionally has the device
+pre-apply it to the samples.

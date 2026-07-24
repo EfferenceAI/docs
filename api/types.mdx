@@ -19,10 +19,12 @@ the SDK is the sole producer — and consumers read through accessors:
 | `getStep()` | `int` | bytes per row (first plane) |
 | `getSizeInBytes()` | `size_t` | total buffer size |
 | `isInit()` | `bool` | whether a buffer is allocated |
+| `getMemoryType()` | `MEM` | where the buffer lives |
 
-Copies and assignment are deep. `alloc(w, h, type)` / `free()` manage a
-standalone buffer, and `copyTo(dst)` deep-copies pixels; `MEM::GPU` is not
-supported and returns `UNSUPPORTED`.
+Copies and assignment are deep. `alloc(int, int, MAT_TYPE, MEM = MEM::CPU)`
+and `free()` manage a standalone buffer, and
+`copyTo(Mat&, MEM = MEM::CPU) const` deep-copies pixels. `getPtr()` also takes
+an optional `MEM`. `MEM::GPU` is not supported and returns `UNSUPPORTED`.
 
 ## ImuSample / SensorsData
 
@@ -44,8 +46,8 @@ struct SensorsData {                     // filled by retrieve_imu()
 
 ## Timestamp
 
-Nanoseconds since epoch with unit accessors: `nanoseconds()`,
-`microseconds()`, `milliseconds()`, `seconds()`.
+Nanoseconds since epoch, held in the public field `data_ns`, with unit
+accessors: `nanoseconds()`, `microseconds()`, `milliseconds()`, `seconds()`.
 
 ## DeviceInformation
 
@@ -56,7 +58,8 @@ struct DeviceInformation {
     std::string  serial;             // full serial (may be non-numeric)
     unsigned int serial_number;      // numeric form; 0 when not numeric
     MODEL        model;
-    unsigned int firmware_version;
+    unsigned int firmware_version;   // monotonic int used for anti-rollback
+    std::string  firmware_version_str;   // human-readable "XX.XX.XX"
     INPUT_TYPE   input_type;
     CameraConfiguration  camera_configuration;    // resolution, fps, codec, calibration
     SensorsConfiguration sensors_configuration;   // IMU params + extrinsics
@@ -65,11 +68,27 @@ struct DeviceInformation {
 };
 ```
 
-- `CameraConfiguration::calibration` — double-sphere intrinsics
-  (`fx fy cx cy xi alpha`).
-- `SensorsConfiguration::camera_imu_transform` — 4×4 camera→IMU extrinsic.
-- `Capabilities::modes` — the selectable resolution/fps menu; values outside
-  it are rejected at `open()`.
+- `CameraConfiguration::calibration` — a `CalibrationParameters`: the
+  double-sphere intrinsics (`fx fy cx cy xi alpha`), the `model`, the `width`
+  and `height` they were calibrated at, plus two fields that change device
+  behavior rather than describe it — `rectify` (default `false`; when set the
+  device undistorts frames itself, so recordings ship rectilinear instead of
+  raw fisheye) and `fov_scale` (default `1.0`; below 1 is wider, above 1
+  zooms).
+- `SensorsConfiguration` — `accelerometer` and `gyroscope` (each a
+  `SensorParameters`: `type`, `unit`, `sampling_rate`, `range`,
+  `noise_density`, `bias_random_walk`, `tau`, `state`), the 4×4
+  `camera_imu_transform` camera→IMU extrinsic, and the field-calibration
+  read-back: `accel_bias`, `gyro_bias`, `accel_scale_misalign`,
+  `gyro_scale_misalign`, and `time_offset_ns`.
+- `WirelessConfiguration` — `wifi_mac_address`, `bt_mac_address`, `bt_paired`,
+  `wifi_connected`, `wifi_ssid`, `wifi_ip_address`, `wifi_rssi`,
+  `internet_reachable`, `wifi_state`, `wifi_link_speed`, `wifi_freq_mhz`,
+  `wifi_security`, and `saved_networks`.
+- `Capabilities` — `modes` (the selectable menu; values outside it are
+  rejected at `open()`) and `codecs`. Each `SupportedMode` carries
+  `resolution`, `fps`, and `binning` (`"none"` or `"2x2"`, how the mode
+  derives from the full sensor).
 
 ## Status structs
 
@@ -89,15 +108,16 @@ struct RecordingStatus {
     bool     recording;
     uint64_t bytes, frames, duration_ms;
     uint64_t storage_free_bytes, storage_total_bytes;
-    UPLOAD_STATE upload;             // + upload_bytes_sent / _total
+    UPLOAD_STATE upload;             // + upload_bytes_sent / upload_bytes_total
     ERROR_CODE   last_error;
 };
 
 struct UpdateStatus {
     bool         active;
-    UPDATE_STATE state;              // DOWNLOADING / VERIFYING / READY_TO_APPLY / APPLYING
-    int          progress;           // 0-100, -1 indeterminate
+    UPDATE_STATE state;              // see UPDATE_STATE for all eight phases
+    int          progress;           // 0–100, -1 indeterminate
     std::string  message;
+    std::string  running_version;    // human-readable
     uint32_t     running_version_int, target_version_int;
     ERROR_CODE   last_error;
 };
@@ -114,7 +134,23 @@ One row of `get_device_list()`:
 | `serial` | USB descriptor serial |
 | `ble_address` / `ble_name` | BLE identity (STREAM rows) |
 
+## WifiNetwork
+
+One access point from `scan_wifi_networks()`: `ssid`, `rssi` (dBm, higher is
+stronger), and `secured` (WPA/WPA2/WPA3).
+
+## ImuCalibrationParameters
+
+Passed to `set_imu_calibration()`. The model is `a* = M·S·(x − b)`, with the
+3×3 scale-misalignment folding `M` and `S` together, row-major, per sensor.
+Every field defaults to the identity map, so a partially filled struct is safe.
+
+`accel_bias`, `gyro_bias`, `accel_scale_misalign`, `gyro_scale_misalign`,
+`accel_noise_density`, `gyro_noise_density`, `accel_bias_random_walk`,
+`gyro_bias_random_walk`, `accel_tau`, `gyro_tau`, `imu_to_camera` (4×4), and
+`time_offset_ns`.
+
 ## Location
 
 `latitude`, `longitude`, `altitude`, `covariance_diag` — written into each
-recording's `LocationFix`.
+recording's `LocationFix` MCAP message.

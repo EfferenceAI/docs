@@ -34,11 +34,12 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `INVALID_PASSWORD` | BLE password rejected |
 | `INSUFFICIENT_PERMISSIONS` | USB access denied — install the udev rule |
 | `UNSUPPORTED` | not supported in this build |
+| `DEVICE_BUSY` | device is recording or livestreaming; retry once it is idle |
 
 ### 40–59 · Sensor parameters & calibration
 | Value | Meaning |
 |---|---|
-| `INVALID_RESOLUTION` / `INVALID_FPS` / `UNSUPPORTED_COMPRESSION` | rejected against the device's capability menu |
+| `INVALID_RESOLUTION` / `INVALID_FPS` / `UNSUPPORTED_COMPRESSION` | rejected by the device's capability menu |
 | `CALIBRATION_FILE_NOT_AVAILABLE` / `INVALID_CALIBRATION_FILE` | calibration missing / unreadable |
 | `POTENTIAL_CALIBRATION_ISSUE` | runtime values suggest a calibration problem |
 
@@ -49,6 +50,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `CANNOT_START_CAMERA_STREAM` | stream would not start (in use?) |
 | `COMMUNICATION_ERROR` | a control round trip failed |
 | `WIFI_NOT_CONNECTED` | operation needs WiFi; device not associated |
+| `INSUFFICIENT_WIFI_BANDWIDTH` | requested format is too large for WiFi/UDP — returned by `open()` for `RAW` with a `udp_host` set; use an encoded codec, or stream `RAW` over USB |
 
 ### 80–99 · Streaming & recording
 | Value | Meaning |
@@ -60,7 +62,10 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `STORAGE_FULL` | device storage below the free-space floor |
 | `RECORDING_NOT_FOUND` / `RECORDING_ALREADY_EXISTS` | name errors |
 
-### 100 · `UNKNOWN_FAILURE`
+### 100 · Catch-all
+| Value | Meaning |
+|---|---|
+| `UNKNOWN_FAILURE` | no more specific code applied |
 
 ## Session & transport
 
@@ -78,11 +83,11 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 
 | Enum | Values | Notes |
 |---|---|---|
-| `DEVICE_STATE` | `CLOSED`, `IDLE`, `STREAMING`, `UPDATING` | no UNKNOWN: unreadable state surfaces as an `ERROR_CODE`, `get_state()` keeps the last known value |
+| `DEVICE_STATE` | `CLOSED`, `IDLE`, `STREAMING`, `UPDATING` | no `UNKNOWN`: an unreadable state surfaces as an `ERROR_CODE`, and `get_state()` keeps the last known value |
 | `MOTION_STATE` | `STATIC`, `MOVING`, `FALLING` | host SDK classification from acceleration and angular speed |
 | `CAMERA_STATE` / `SENSOR_STATE` | `AVAILABLE`, `NOT_AVAILABLE` | set by `health_check()` |
 | `TIME_REFERENCE` | `IMAGE`, `CURRENT` | frame capture time vs host now |
-| `COORDINATE_SYSTEM` | `IMAGE`, `LEFT/RIGHT_HANDED_Y_UP`, `RIGHT/LEFT_HANDED_Z_UP`, `RIGHT_HANDED_Z_UP_X_FWD` | IMU/pose convention |
+| `COORDINATE_SYSTEM` | `IMAGE`, `LEFT_HANDED_Y_UP`, `RIGHT_HANDED_Y_UP`, `LEFT_HANDED_Z_UP`, `RIGHT_HANDED_Z_UP`, `RIGHT_HANDED_Z_UP_X_FWD` | IMU/pose convention |
 
 ## Recording & maintenance
 
@@ -90,8 +95,9 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 |---|---|---|
 | `RECORDING_TARGET` | `HOST_FILE`, `DEVICE_LOCAL` | device-local survives host disconnect |
 | `UPLOAD_STATE` | `RUNNING`, `OFF` | failures surface as `ERROR_CODE` |
-| `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING` | firmware update phases |
+| `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING`, `CHECKING`, `UPLOADING`, `REBOOTING`, `RECONNECTING` | firmware update phases. A local `.eff` sideload passes through `UPLOADING`, `REBOOTING`, and `RECONNECTING`, so switch exhaustively |
 | `MODEL` | `M1` | |
 | `SENSOR_TYPE` | `ACCELEROMETER`, `GYROSCOPE` | |
 | `SENSOR_UNIT` | `M_SEC_2`, `DEG_SEC`, `CELSIUS`, `HERTZ` | |
 | `LENS_DISTORTION_MODEL` | `DS` | double-sphere camera model |
+| `IMU_DATA` | `RAW`, `CALIBRATED`, `BOTH` | how a session records IMU samples. `RAW` (default) records uncalibrated and carries the calibration as metadata; `CALIBRATED` has the device apply it per sample; `BOTH` emits each |
