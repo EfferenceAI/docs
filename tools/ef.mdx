@@ -74,8 +74,8 @@ ef-cli stop-upload <name>
 ### Update
 
 ```sh
-ef-cli check-update
-ef-cli update [url|firmware.eff]       # a local .eff sideloads over the wire
+ef-cli update <url>                    # apply firmware from the URL we provide
+ef-cli update firmware.eff             # sideload a local image over USB/BLE
 ef-cli abort-update
 ```
 

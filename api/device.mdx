@@ -115,15 +115,14 @@ USB or Bluetooth LE (BLE) control link; uploads use WiFi.
 ## Updates
 
 ```cpp
-ERROR_CODE check_update(bool& available);
-ERROR_CODE update(const std::string& url = "",
+ERROR_CODE update(const std::string& url,
                   const std::function<void(const UpdateStatus&)>& on_progress = {});
 ERROR_CODE abort_update();
 ERROR_CODE get_update_status(UpdateStatus& out);
 ```
-`url` accepts three forms: `""` (the configured update server), an `http(s)`
-URL, or a **local `.eff` path** (sideloaded over the control link). `update()`
-blocks through apply and reboot, reporting progress via the callback.
+`url` is the download URL provided to you, or a **local `.eff` path**
+(sideloaded over the control link). `update()` blocks through apply and reboot,
+reporting progress via the callback.
 
 ## WiFi, time, location, admin
 
