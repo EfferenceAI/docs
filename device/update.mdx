@@ -7,6 +7,15 @@ Firmware uses signed `.eff` images and A/B slots with rollback. Open the M1
 over USB or Bluetooth LE (BLE), then stop device-local recording and uploads
 before updating.
 
+## From the CLI
+
+```sh
+ef check-update
+ef update                      # configured server
+ef update firmware.eff         # sideload a local image
+ef abort-update
+```
+
 ## Check and apply
 
 ```cpp
@@ -40,15 +49,6 @@ UpdateStatus st;
 dev.get_update_status(st);
 // st.active, st.state, st.progress (0-100, -1 indeterminate)
 // st.running_version_int, st.target_version_int
-```
-
-## From the CLI
-
-```sh
-ef check-update
-ef update                      # configured server
-ef update firmware.eff         # sideload a local image
-ef abort-update
 ```
 
 <Warning>
