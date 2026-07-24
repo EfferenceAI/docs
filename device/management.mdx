@@ -90,10 +90,10 @@ ERROR_CODE ec = dev.reboot();
 for the current state return `INVALID_FUNCTION_CALL` without touching the
 device.
 
-Stop capture, recording, upload, health, or update work before rebooting. When
-the reboot command is accepted—or the link disappears because reboot began
-before the reply—the SDK closes the handle. Reconnect with `open()` after the
-device returns.
+Stop capture, recording, upload, health, or update work before rebooting. The
+SDK closes the handle when the reboot command is accepted, or when the link
+disappears because the reboot began before the reply arrived. Reconnect with
+`open()` after the device returns.
 
 ## CLI setup commands
 

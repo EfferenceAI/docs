@@ -16,8 +16,8 @@ efference-viewer [--codec raw|h264|h264hq|h265|h265hq]
 - **Wireless:** pass `--ble <MAC> --udp <linux-host-ip>`.
 - **Quit:** press `Q` or `Esc`, close the window, or press Ctrl-C.
 
-Requires the SDK built with OpenCV + FFmpeg (installed by the first-time
-`./build.sh --deps` command). CMake skips this tool if either is missing.
+This tool requires an SDK built with OpenCV and FFmpeg, both installed by the
+first-time `./build.sh --deps` run. CMake skips the tool if either is missing.
 
-For persistent USB corruption, confirm that `ef-cli info` reports a SuperSpeed
-connection.
+If the video shows persistent corruption over USB, confirm that `ef-cli info`
+reports a SuperSpeed connection.

@@ -108,9 +108,9 @@ ERROR_CODE update(const std::string& url = "",
 ERROR_CODE abort_update();
 ERROR_CODE get_update_status(UpdateStatus& out);
 ```
-`url`: `""` = configured server, an `http(s)` URL, or a **local `.eff` path**
-(sideloaded over the control link). `update()` blocks through apply and
-reboot, reporting progress via the callback.
+`url` accepts three forms: `""` (the configured update server), an `http(s)`
+URL, or a **local `.eff` path** (sideloaded over the control link). `update()`
+blocks through apply and reboot, reporting progress via the callback.
 
 ## WiFi, time, location, admin
 
