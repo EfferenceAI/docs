@@ -6,7 +6,7 @@ description: "Control and inspect an Efference M1"
 `ef-cli` controls the M1 over USB by default. Add `--ble <MAC>` for Bluetooth LE
 (BLE).
 
-```
+```sh
 ef-cli [--ble <MAC>] [--device <id>] [--password <pw>] [--udp <host[:port]>] [--verbose] <command> [args]
 ```
 
@@ -74,8 +74,10 @@ ef-cli stop-upload <name>
 ### Update
 
 ```sh
-ef-cli update <url>                    # apply firmware from the URL we provide
-ef-cli update firmware.eff             # sideload a local image over USB/BLE
+ef-cli check-update                    # what the update service offers, no download
+ef-cli update                          # install whatever it offers
+ef-cli update --url <url>              # install from an explicit URL, no service call
+ef-cli update --file firmware.eff      # sideload a local image over USB
 ef-cli abort-update
 ```
 

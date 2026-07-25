@@ -57,6 +57,8 @@ struct DeviceInformation {
     std::string  serial;             // full serial (may be non-numeric)
     unsigned int serial_number;      // numeric form; 0 when not numeric
     MODEL        model;
+    std::string  model_name;
+    std::string  hw_rev;
     unsigned int firmware_version;
     std::string  firmware_version_str;    // human-readable "XX.XX.XX"
     INPUT_TYPE   input_type;
@@ -93,6 +95,15 @@ struct RecordingStatus {
     uint64_t storage_free_bytes, storage_total_bytes;
     UPLOAD_STATE upload;             // + upload_bytes_sent / _total
     ERROR_CODE   last_error;
+};
+
+struct UpdateAvailability {
+    bool         available;          // false when current, or nothing published
+    unsigned int target_version;     // version_int of the bundle at `url`
+    std::string  target_version_str; // display only
+    std::string  url;                // empty unless available
+    std::string  notes;              // optional one-line service message
+    std::string  service_error;      // why no answer was usable
 };
 
 struct UpdateStatus {
