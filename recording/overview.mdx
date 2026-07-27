@@ -72,6 +72,19 @@ dev.get_storage(free_b, total_b);          // eMMC headroom
 `download_recording()` uses the control link in chunks and does not require
 WiFi. If a transfer fails, the SDK removes the partial destination file.
 
+## Encrypted recordings
+
+Recordings can be AES-256-GCM encrypted at rest under a per-device key.
+`RecordingStatus::encrypted` reports whether a stored recording is, read off the
+container on disk rather than from the current setting, so it stays correct for
+recordings written before that setting last changed.
+
+Neither `download_recording()` nor an upload decrypts: the bytes move as they are
+stored, so an encrypted recording arrives as ciphertext and needs the key before
+any MCAP reader will open it. Decrypt on the host with `ef-decrypt`. Setting up a
+key, and reading a file back, are covered in [Access Control and
+Encryption](/device/security).
+
 ## Uploading from the device
 
 With WiFi provisioned, the M1 can upload a stopped recording with HTTP PUT:

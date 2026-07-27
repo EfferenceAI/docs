@@ -31,7 +31,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `DEVICE_NOT_AVAILABLE` | detected but could not open |
 | `INVALID_FIRMWARE` | corrupted/unrecognized firmware image |
 | `INVALID_FUNCTION_CALL` | call illegal in the current `DEVICE_STATE` |
-| `INVALID_PASSWORD` | BLE password rejected |
+| `INVALID_PASSWORD` | control password rejected (challenge-response failed); any BLE link, or USB once locked |
 | `INSUFFICIENT_PERMISSIONS` | USB access denied — install the udev rule |
 | `UNSUPPORTED` | not supported in this build |
 | `DEVICE_BUSY` | device busy (recording or livestreaming); retry once idle |
@@ -94,6 +94,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `RECORDING_TARGET` | `HOST_FILE`, `DEVICE_LOCAL` | device-local survives host disconnect |
 | `UPLOAD_STATE` | `RUNNING`, `OFF` | failures surface as `ERROR_CODE` |
 | `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING`, `CHECKING`, `UPLOADING`, `REBOOTING`, `RECONNECTING` | firmware update phases; 0–3 are the apply sequence, `CHECKING` reads the manifest, `UPLOADING` pushes a local `.eff`, `REBOOTING`/`RECONNECTING` cross the reboot |
+| `ENCRYPTION_ALGORITHM` | `UNSPECIFIED`, `AES_256_GCM` | at-rest recording cipher; `UNSPECIFIED` means "device default" on a request, and AES-256-GCM in a file written before the field existed |
 | `MODEL` | `M1` | |
 | `SENSOR_TYPE` | `ACCELEROMETER`, `GYROSCOPE` | |
 | `SENSOR_UNIT` | `M_SEC_2`, `DEG_SEC`, `CELSIUS`, `HERTZ` | |

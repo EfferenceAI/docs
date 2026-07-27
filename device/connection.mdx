@@ -69,8 +69,16 @@ ef::Device device;
 ef::ERROR_CODE status = device.open(init);
 ```
 
-An incorrect password returns `INVALID_PASSWORD`. Leaving `udp_host` empty
-creates a control-only session.
+Leaving `udp_host` empty creates a control-only session.
+
+An incorrect password does **not** fail the `open()`. The device still answers
+`info`, `state` and `storage` unauthenticated, and those are exactly what an
+operator needs to diagnose a device whose password they have lost, so failing
+here would hide them behind the credential being recovered. The gated verbs
+report `INVALID_PASSWORD` on their own. Check up front with
+`device.is_authenticated()`, which is meaningful on any BLE link and on a USB one
+the device reports as locked. See [Access Control and
+Encryption](/device/security).
 
 ## Add wireless live data
 
@@ -145,6 +153,8 @@ device.
 | `DEVICE_NOT_DETECTED` | No matching USB device, BLE device, or MCAP file |
 | `INSUFFICIENT_PERMISSIONS` | USB device found but blocked by host permissions |
 | `DEVICE_NOT_AVAILABLE` | Device found but could not be opened |
-| `INVALID_PASSWORD` | BLE authentication failed |
 | `INVALID_FUNCTION_CALL` | Invalid state, missing BLE support, missing required path/address, or repeated `open()` |
 | `COMMUNICATION_ERROR` | Control transport failed during the session |
+
+`INVALID_PASSWORD` is not in this table on purpose: authentication failure does
+not surface from `open()`, only from the gated verb you call afterwards.

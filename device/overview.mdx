@@ -74,5 +74,11 @@ Calls that are illegal in the current state return
 Cached getters, including `get_device_information()` and
 `get_health_status()`, do not access the device or block.
 
+Access control is orthogonal to this state model. A device can be locked or
+unlocked in any of these states, and a gated call on a link that has not
+authenticated returns `INVALID_PASSWORD` rather than `INVALID_FUNCTION_CALL`.
+Read `usb_locked` and `session_unlocked` from `get_device_information()`, and see
+[Access Control and Encryption](/device/security).
+
 Continue with [Connection & Lifecycle](/device/connection) before setting up
 an individual feature.

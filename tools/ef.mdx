@@ -16,7 +16,7 @@ ef-cli [--ble <MAC>] [--device <id>] [--password <pw>] [--udp <host[:port]>] [--
 |---|---|
 | `--ble <MAC>` | connect over Bluetooth LE instead of USB |
 | `--device <id>` | pick one of several USB devices |
-| `--password <pw>` | BLE control password (factory default `123456`) |
+| `--password <pw>` | control password (factory default `123456`); always needed on BLE, and on USB once locked |
 | `--udp <host[:port]>` | with `--ble`: device streams to this host over WiFi/UDP |
 | `--verbose` | print control traffic |
 
@@ -58,11 +58,15 @@ ef-cli record start [name] [--location LAT,LON[,ALT]]
                               # --location overrides just this recording
 ef-cli record stop
 ef-cli record status [name]
-ef-cli record list
+ef-cli record list            # each entry marked [encrypted] or [unencrypted]
 ef-cli record delete <name>
-ef-cli download <name> [dest] # pull over USB/BLE (default <name>.mcap)
+ef-cli download <name> [dest] # pull over USB/BLE (default <name>.mcap, bytes as stored)
 ef-cli storage                # free/total on the recording store
 ```
+
+`download` never decrypts. An encrypted recording arrives as ciphertext, so give
+it a destination and run it through `ef-decrypt`. See
+[Access Control and Encryption](/device/security#reading-an-encrypted-recording).
 
 ### Upload
 
@@ -88,11 +92,36 @@ ef-cli wifi add <ssid> <psk> [country]
 ef-cli wifi remove <ssid> | select <ssid> | status
 ef-cli wifi list                       # saved networks (marks the connected one)
 ef-cli wifi scan                       # access points in range (not while recording)
-ef-cli set-password <new>              # rekey BLE password (over USB)
-ef-cli set-password <old> <new>        # rekey over BLE
 ef-cli sync-time                       # set the device clock from the host
 ef-cli time                            # read the device wall clock
 ef-cli location                        # read the device's current location
 ef-cli location set <lat> <lon> [alt]  # persist the device location
 ef-cli reboot
 ```
+
+### Access control & encryption
+
+```sh
+ef-cli set-password <new>              # rekey the control password (over unlocked USB)
+ef-cli set-password <old> <new>        # rekey over BLE, or over locked USB
+ef-cli lock on|off [--session]         # lock/unlock the USB control plane
+                                       # --session: this power session only
+ef-cli encryption on|off               # AES-256 encrypt new recordings (refused with no key)
+ef-cli encryption create               # generate the device's key; SHOWN ONCE, save it
+ef-cli encryption delete               # show the key and how to destroy it; destroys nothing
+ef-cli encryption delete --confirm <key_id> [--yes]
+ef-cli key show [--out <file>]         # print the key, or write it to a new 0600 file
+ef-cli factory-reset [--yes]           # restore defaults; DESTROYS the encryption key
+```
+
+`--yes` is required when there is no terminal to prompt on: the two destructive
+commands refuse rather than prompt from cron or `ssh box 'ef-cli ...'`.
+
+Separate binary, built alongside `ef-cli` when libcrypto is present:
+
+```sh
+ef-decrypt <in.enc> <key-file> <out.mcap>
+```
+
+Full model, including what stays readable on a locked device and what a factory
+reset destroys, in [Access Control and Encryption](/device/security).

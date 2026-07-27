@@ -1,0 +1,231 @@
+---
+title: "Access Control and Encryption"
+description: "Lock the USB control plane and encrypt recordings at rest"
+---
+
+A factory device is open: Bluetooth LE control is password-gated, USB is not, and
+recordings are written in the clear. Both halves of that are yours to change, and
+they are independent. Locking the control plane decides who can command the
+device; encrypting at rest decides who can read the recordings it has already
+made.
+
+## One password, both transports
+
+The device has a single control password (factory default `123456`). BLE always
+requires it. USB ignores it until you lock the device, which is what makes a
+bench workflow convenient and a fielded device defensible.
+
+```sh
+ef-cli lock on                       # USB now gates exactly like BLE
+ef-cli --password 123456 record list
+ef-cli --password 123456 lock off
+```
+
+Toggling the lock in either direction requires the current password, so an
+unattended device cannot be quietly unlocked. Rekeying works from either
+transport and changes both:
+
+```sh
+ef-cli set-password <new>            # over UNLOCKED USB: physical access is the credential
+ef-cli set-password <old> <new>      # over BLE, or over locked USB
+```
+
+Once USB is locked, the no-old-password shortcut is gone and
+[`factory-reset`](#recovering-a-lost-password) is the only way back in.
+
+<Info>
+`info`, `state`, `storage` and `factory-reset` answer whatever the lock state, so
+a locked device still tells you what it is and can always be recovered. `ef-cli
+info` reports `usb access` and `encryption`, which means a device that is
+refusing you will say why.
+</Info>
+
+## Authentication is per link, and it expires
+
+Authenticate once and the rest of that connection is authenticated. USB and BLE
+authenticate independently of each other.
+
+The grant does not last forever, because USB gives the device no way to notice
+that the client which earned it has gone away. It ends at whichever comes first:
+two minutes idle, ten minutes from when it was granted (traffic does not extend
+this), a new authentication attempt on the same link, or the cable cycling.
+
+`ef::Device` re-runs the handshake and retries transparently, so a long-lived
+session never sees this. A client speaking the wire protocol directly must handle
+`AUTH_REQUIRED` on any gated verb and re-authenticate in response.
+
+`open()` deliberately succeeds even with a wrong password, because `info`,
+`state` and `storage` are exactly what an operator needs while recovering a
+device whose password they have lost. Check whether gated calls will work before
+making one:
+
+```cpp
+dev.open(init);
+if (!dev.is_authenticated())
+    std::puts("password not accepted: only info, state and storage will answer");
+```
+
+## Opening a locked device for one session
+
+Passing `--password` to every command gets old. Open the device for the power
+session instead:
+
+```sh
+ef-cli lock off --session      # open until re-locked, or power is lost
+ef-cli lock on  --session      # close it again
+```
+
+This does not change the stored policy. The device still reports itself locked,
+so losing power closes it with nothing to remember, and `ef-cli info` shows
+`LOCKED, open for this session` rather than claiming to be either state. It is
+refused on a device that is not locked, and a plain `lock on` from either
+transport ends it.
+
+Authenticating never does this implicitly. A password proves one caller for one
+call; opening the device is a separate decision an operator makes, because a
+grant that spread from one client to every other client on the cable is the
+defect this replaced.
+
+## Encrypting recordings at rest
+
+Recordings can be AES-256-GCM encrypted under a per-device key. The device
+generates that key itself and returns it exactly once, at creation:
+
+```sh
+ef-cli encryption create             # generates the key and PRINTS IT, this one time
+ef-cli encryption on                 # applies to the NEXT recording
+```
+
+<Warning>
+**Save the key when `create` prints it.** The device keeps a working copy, but
+nothing prints it again except `key show`, and a factory reset destroys it.
+Without your copy, recordings made under that key cannot be read by anyone.
+</Warning>
+
+```sh
+ef-cli key show                      # print it (stdout, so it can be piped)
+ef-cli key show --out device1.key    # or write it to a 0600 file, never echoed
+```
+
+`--out` refuses to overwrite an existing file rather than truncating it, since
+the file it would destroy may be the only copy of another device's key.
+
+Turning encryption on with no key is refused, so a session can never be told it
+is encrypting while it records in the clear. Existing recordings keep whatever
+they were written with; the setting applies to subsequent ones only.
+
+`ef-cli info` reports the key's ID, the first four bytes of its SHA-256 and never
+the key itself. The same ID is written into each recording's header, which is how
+you tell which of your saved keys opens a given file. On a locked device the ID
+needs the password like any other gated field, because that value in a file
+header would otherwise let anyone in range link a device to recordings they hold.
+Whether a key exists at all is always readable.
+
+`record list` marks each recording `[encrypted]` or `[unencrypted]` by reading
+the container magic off the file, so it reports what is on disk rather than the
+current setting.
+
+## Reading an encrypted recording
+
+Download it, then decrypt on the host with `ef-decrypt`:
+
+```sh
+ef-cli download clip1 clip1.enc
+ef-decrypt clip1.enc device1.key clip1.mcap
+```
+
+`download` does not decrypt and does not rename. With no destination it writes
+`<name>.mcap` whatever the contents are, so an encrypted recording lands in a
+file no MCAP reader will open unless you name it yourself, as above.
+
+The key file is what `key show --out` wrote: 32 raw bytes, or 64 hex characters
+with an optional trailing newline. `ef-decrypt` writes the plaintext to the named
+output and its summary to stderr, so it composes in a pipeline.
+
+| Exit | Meaning |
+|---|---|
+| `0` | Clean: the end marker was present and every chunk verified. |
+| `1` | Truncated, or a chunk failed its tag. Everything before that point is valid and is kept. |
+| `2` | Unusable input: bad header, wrong key, an unimplemented algorithm, or I/O failure. No output file is left behind. |
+
+A recording cut short by power loss is exit `1`, not corruption, and decrypts up
+to its last complete chunk. A wrong key is caught at the header rather than as a
+wall of failing chunks, and the error names the `key_id` the file actually wants.
+
+`ef-decrypt` needs libcrypto (`apt install libssl-dev`) and is skipped by the
+build when that is missing.
+
+## Destroying the key
+
+Two commands destroy it, and both are irreversible for every recording written
+under it, including copies already uploaded elsewhere.
+
+```sh
+ef-cli encryption delete             # shows the key and what will happen; destroys NOTHING
+ef-cli encryption delete --confirm <key_id>
+```
+
+The first form exists so you can still save the key if you need to read old
+recordings. The device requires `key_id` to match the installed key, so an SDK
+caller cannot destroy a key it never identified, and it refuses unless the device
+is `IDLE`: a running session holds the key in memory and would otherwise keep
+writing under a key the device had just reported destroyed.
+
+Rotation is delete-then-create, deliberately two steps. `create` is refused while
+a key exists, because replacing one would make every recording written under it
+permanently undecryptable.
+
+## Recovering a lost password
+
+Reset the device over USB, where physical possession is the credential:
+
+```sh
+ef-cli factory-reset
+```
+
+This restores the password, lock state, encryption setting, WiFi credentials,
+calibration, capture configuration and recordings to defaults.
+
+<Warning>
+`factory-reset` also **destroys the encryption key**, which makes every recording
+written under it permanently unreadable, wherever those files now live. Save the
+key with `key show --out <file>` first if you still need them.
+</Warning>
+
+The reset does not show you the key on its way out, unlike `encryption delete`.
+It answers unauthenticated over USB, and handing a key to an unauthenticated
+caller is precisely the exposure that destroying it removes. Over BLE it requires
+the password like any other verb, because an unauthenticated remote reset would
+let anyone in range destroy every recording's key.
+
+The key lives on the device's `userdata` partition, so a full reflash destroys it
+as surely as a reset does. Your saved copy is the only thing that survives
+either.
+
+## Scripting these commands
+
+`encryption delete --confirm` and `factory-reset` prompt for a typed confirmation
+on a terminal. With no terminal (`ssh box 'ef-cli ...'`, cron, redirected stdin)
+they refuse rather than prompt, so add `--yes` to mean it in a script:
+
+```sh
+ef-cli encryption delete --confirm <key_id> --yes
+ef-cli factory-reset --yes
+```
+
+## From the library
+
+```cpp
+ERROR_CODE set_usb_lock(bool locked, bool session_only = false);
+ERROR_CODE set_encryption(bool enabled);
+ERROR_CODE get_encryption_key(EncryptionKey& out);
+ERROR_CODE create_encryption_key(EncryptionKey& out);
+ERROR_CODE delete_encryption_key(const std::string& key_id, EncryptionKey& out);
+ERROR_CODE factory_reset();
+bool       is_authenticated() const;
+```
+
+Read the current state from `get_device_information()`: `usb_locked`,
+`session_unlocked`, `encryption_enabled`, `encryption_key_present`,
+`encryption_key_id` and `encryption_algorithm`. See the
+[API reference](/api/device) for the full contracts.

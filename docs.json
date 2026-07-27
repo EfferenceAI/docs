@@ -67,6 +67,7 @@
               "device/health",
               "device/wifi",
               "device/update",
+              "device/security",
               "device/management"
             ]
           },

@@ -66,6 +66,15 @@ struct DeviceInformation {
     SensorsConfiguration sensors_configuration;   // IMU params + extrinsics
     WirelessConfiguration wireless;               // WiFi/BT state
     Capabilities         capabilities;            // enabled modes + codecs
+
+    // Access + at-rest state, reported on the ungated GetDeviceInformation, so a
+    // host can read these before authenticating.
+    bool usb_locked;                 // USB gates like BLE; authenticate first
+    bool session_unlocked;           // read WITH usb_locked, not instead of it
+    bool encryption_enabled;         // new recordings will be encrypted
+    bool encryption_key_present;     // a key exists
+    std::string encryption_key_id;   // "" when absent; never the key itself
+    ENCRYPTION_ALGORITHM encryption_algorithm;
 };
 ```
 
@@ -74,6 +83,10 @@ struct DeviceInformation {
 - `SensorsConfiguration::camera_imu_transform` — 4×4 camera→IMU extrinsic.
 - `Capabilities::modes` — the selectable resolution/fps menu; values outside
   it are rejected at `open()`.
+- `session_unlocked` is reported *alongside* `usb_locked`, which stays true. The
+  stored policy is still locked; gated verbs answer anyway until the device is
+  re-locked or loses power. See [Access Control and
+  Encryption](/device/security).
 
 ## Status structs
 
@@ -91,10 +104,18 @@ struct RecordingStatus {
     std::string      name;
     RECORDING_TARGET target;
     bool     recording;
+    bool     encrypted;              // read off the file, not from the setting
     uint64_t bytes, frames, duration_ms;
     uint64_t storage_free_bytes, storage_total_bytes;
     UPLOAD_STATE upload;             // + upload_bytes_sent / _total
     ERROR_CODE   last_error;
+};
+
+struct EncryptionKey {
+    ENCRYPTION_ALGORITHM algorithm;
+    std::vector<uint8_t> key;        // 32 bytes for AES-256-GCM
+    std::string          key_id;     // first 4 bytes of SHA-256(key), hex
+    bool                 present;    // false from delete: `key` is the destroyed copy
 };
 
 struct UpdateAvailability {
@@ -116,6 +137,14 @@ struct UpdateStatus {
     ERROR_CODE   last_error;
 };
 ```
+
+`EncryptionKey::key` is populated only by the calls that hand the key over,
+meaning `create_encryption_key`, `get_encryption_key`, and
+`delete_encryption_key` returning what it destroyed. Everywhere else the device
+reports `key_id` alone, which names a key without revealing it.
+`RecordingStatus::encrypted` comes from the container magic on disk rather than
+from the current setting, so it stays correct for recordings written before the
+setting last changed.
 
 ## DeviceProperties
 

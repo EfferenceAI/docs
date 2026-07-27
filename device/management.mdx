@@ -67,17 +67,24 @@ dev.get_location(loc);
 The persistent location applies to later recordings. For one session, set
 `RecordingParameters::has_location` and `location`.
 
-## BLE password
+## Control password
 
-BLE control is password-gated (factory default `123456`). Rekey it:
+One password covers both transports (factory default `123456`). BLE control is
+always gated by it; USB is gated once the device is locked. Rekey it:
 
 ```cpp
-dev.set_ble_password("123456", "new-password");   // over BLE: old required
-dev.set_ble_password("",       "new-password");   // over USB: physical access resets
+dev.set_ble_password("123456", "new-password");   // over BLE, or over locked USB
+dev.set_ble_password("",       "new-password");   // over UNLOCKED USB only
 ```
 
-Over BLE, provide the old password. USB physical access permits an empty old
-password to reset the credential.
+The empty-old-password form is physical access resetting a forgotten credential,
+and it works only while USB is unlocked. Once locked, that shortcut is gone and
+`factory_reset()` is the way back in.
+
+The method keeps its `set_ble_password` name for source compatibility, but it has
+not been BLE-only since the USB lock shipped. Locking, at-rest encryption, key
+handling and recovery are covered in [Access Control and
+Encryption](/device/security).
 
 ## State and reboot
 
@@ -105,7 +112,8 @@ ef-cli sync-time
 ef-cli time
 ef-cli location
 ef-cli location set 37.7749 -122.4194
-ef-cli set-password <new>          # USB
+ef-cli set-password <new>          # over unlocked USB
 ef-cli --ble <MAC> set-password <old> <new>
+ef-cli lock on|off                 # gate the USB control plane
 ef-cli reboot
 ```
