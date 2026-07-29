@@ -105,6 +105,8 @@ struct RecordingStatus {
     RECORDING_TARGET target;
     bool     recording;
     bool     encrypted;              // read off the file, not from the setting
+    STOP_REASON stopped_reason;      // why the session ended (>= v00.09.16)
+    bool     partial;                // unrepaired power-loss torso, served as-is
     uint64_t bytes, frames, duration_ms;
     uint64_t storage_free_bytes, storage_total_bytes;
     UPLOAD_STATE upload;             // + upload_bytes_sent / _total

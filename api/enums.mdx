@@ -93,6 +93,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 |---|---|---|
 | `RECORDING_TARGET` | `HOST_FILE`, `DEVICE_LOCAL` | device-local survives host disconnect |
 | `UPLOAD_STATE` | `RUNNING`, `OFF` | failures surface as `ERROR_CODE` |
+| `STOP_REASON` | `UNSPECIFIED`, `USER`, `DISK_FULL`, `WRITE_ERROR`, `INTERRUPTED` | why a device-local session ended; `UNSPECIFIED` while recording or from firmware predating the field (< v00.09.16) |
 | `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING`, `CHECKING`, `UPLOADING`, `REBOOTING`, `RECONNECTING` | firmware update phases; 0–3 are the apply sequence, `CHECKING` reads the manifest, `UPLOADING` pushes a local `.eff`, `REBOOTING`/`RECONNECTING` cross the reboot |
 | `ENCRYPTION_ALGORITHM` | `UNSPECIFIED`, `AES_256_GCM` | at-rest recording cipher; `UNSPECIFIED` means "device default" on a request, and AES-256-GCM in a file written before the field existed |
 | `MODEL` | `M1` | |

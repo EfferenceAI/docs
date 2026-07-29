@@ -70,7 +70,25 @@ dev.get_storage(free_b, total_b);          // eMMC headroom
 ```
 
 `download_recording()` uses the control link in chunks and does not require
-WiFi. If a transfer fails, the SDK removes the partial destination file.
+WiFi. A failed transfer leaves the partial file at the destination, and a
+re-run resumes it after verifying it belongs to the same recording; the file
+is not a valid MCAP until a run returns `SUCCESS`. `delete_recording()`
+returns immediately and reclaims large files in the background.
+
+## Stop reasons and power loss
+
+`RecordingStatus::stopped_reason` says why a completed session ended: `USER`,
+`DISK_FULL` (the device finalizes cleanly when the recording store reaches its
+reserve), `WRITE_ERROR`, or `INTERRUPTED` for a power cut. It reads
+`UNSPECIFIED` while recording and from firmware older than v00.09.16.
+
+After a power loss the M1 recovers the interrupted session on its next boot.
+An unencrypted recording is salvaged into a normal, listed, downloadable MCAP
+covering everything flushed before the cut. An encrypted one cannot be
+repaired on the device (the ciphertext is opaque to it), so it is listed with
+`RecordingStatus::partial` set and served as-is: `download_recording()` and
+uploads move the partial bytes, and `ef-decrypt` recovers everything up to the
+cut with a truncated-tail warning.
 
 ## Encrypted recordings
 

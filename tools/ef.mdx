@@ -88,7 +88,7 @@ ef-cli abort-update
 ### WiFi & misc
 
 ```sh
-ef-cli wifi add <ssid> <psk> [country]
+ef-cli wifi add <ssid> [psk [country]]
 ef-cli wifi remove <ssid> | select <ssid> | status
 ef-cli wifi list                       # saved networks (marks the connected one)
 ef-cli wifi scan                       # access points in range (not while recording)
@@ -98,6 +98,10 @@ ef-cli location                        # read the device's current location
 ef-cli location set <lat> <lon> [alt]  # persist the device location
 ef-cli reboot
 ```
+
+Quote an SSID that contains spaces. Omit `<psk>` to enter it at a hidden
+prompt. The optional country is an ISO regulatory-domain code (`US` unlocks
+5 GHz).
 
 ### Access control & encryption
 

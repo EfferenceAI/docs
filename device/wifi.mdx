@@ -41,10 +41,16 @@ WirelessConfiguration w = dev.get_device_information().wireless;
 asynchronous, the first snapshot after `wifi_add()` may still show
 `connecting`.
 
+`wifi_state` is one of `connected`, `connecting`, `auth_failed`, or
+`disconnected`. `connecting` appears only during a live attempt;
+`auth_failed` means the credentials were rejected. A dropped link reads
+`disconnected` while the device reconnects on its own.
+
 ## From the CLI
 
 ```sh
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi add MyNetwork MyPassphrase US
+ef-cli --ble AA:BB:CC:DD:EE:FF wifi add "My iPhone"   # prompts for the password, hidden
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi select MyNetwork
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi status
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi list
@@ -52,8 +58,8 @@ ef-cli --ble AA:BB:CC:DD:EE:FF wifi remove MyNetwork
 ```
 
 <Note>
-Operations that require connectivity — `upload_recording()`, update downloads
-— fail with `WIFI_NOT_CONNECTED` when the device is not associated. Check
+Operations that require connectivity (`upload_recording()`, update downloads)
+fail with `WIFI_NOT_CONNECTED` when the device is not associated. Check
 `wireless.wifi_connected` first for a better user experience.
 </Note>
 
