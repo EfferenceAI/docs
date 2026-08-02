@@ -7,14 +7,14 @@ Firmware uses signed `.eff` images and A/B slots with rollback. Open the M1
 over USB or Bluetooth LE (BLE), then stop device-local recording and uploads
 before updating.
 
-Normally you do not need to know where the image lives. The SDK asks the
-update-check service what this device should be running and passes the result to
-the device, so the common case takes no URL at all.
+The image location is normally not required. The SDK queries the update-check
+service for the version this device should be running and passes the result to
+the device, so the common case requires no URL.
 
 ## Check what is available
 
-`check_update()` is a single request from the host. It does not download
-anything, and it does not ask the device to check on its own.
+`check_update()` issues a single request from the host. It downloads nothing and
+does not instruct the device to perform its own check.
 
 ```cpp
 UpdateAvailability avail;
@@ -23,8 +23,8 @@ dev.check_update(avail);
 ```
 
 `available` is false both when the device is current and when the service has
-nothing published for it. `service_error` carries the reason in either case, so
-"nothing offered" can be told apart from a misconfigured service.
+nothing published for it. `service_error` reports the reason in either case,
+which distinguishes an absence of published updates from a misconfigured service.
 
 ## Apply
 
@@ -39,18 +39,18 @@ The `url` argument selects the source:
 
 | `url` | Behavior |
 |---|---|
-| `""` (empty) | ask the update-check service and install what it offers |
-| `https://...` | download exactly that, no service call |
-| `firmware.eff` (local path) | **sideload**: pushed over the wire, needs USB |
+| `""` (empty) | query the update-check service and install what it offers |
+| `https://...` | download that URL directly, with no service call |
+| `firmware.eff` (local path) | **sideload**: transferred over the wire, requires USB |
 
-Whichever route the image arrives by, the device verifies its signature and
-refuses anything not strictly newer than the running firmware, so a wrong source
-costs a download and nothing else. `update()` returns `DEVICE_UP_TO_DATE` in that
-case, and `WIFI_NOT_CONNECTED` if a download is required but the device is not on
-a network.
+Regardless of how the image is obtained, the device verifies its signature and
+refuses any image that is not strictly newer than the running firmware, so an
+incorrect source costs only a download. `update()` returns `DEVICE_UP_TO_DATE` in
+that case, and `WIFI_NOT_CONNECTED` if a download is required but the device is
+not connected to a network.
 
 `update()` blocks through download, verification, apply, reboot, and
-reconnection. Use the callback or `get_update_status()` for progress, and
+reconnection. Use the callback or `get_update_status()` to monitor progress, and
 `abort_update()` to request cancellation.
 
 ```cpp
@@ -74,16 +74,16 @@ ef-cli abort-update
 
 The endpoint is compiled in. Override it per invocation with
 `EF_UPDATE_CHECK_URL`, or at configure time with
-`cmake -DEF_UPDATE_CHECK_URL=https://my-host/ota/check`, which is what a
-self-hosted or air-gapped deployment wants.
+`cmake -DEF_UPDATE_CHECK_URL=https://my-host/ota/check`, which is the
+appropriate option for a self-hosted or air-gapped deployment.
 
 <Warning>
-A host-file recording cannot span an update (the device reboots); the SDK
-finalizes the `.mcap` before applying. Device-local recordings must be
-stopped first, since the device refuses an over-the-air update while recording.
+A host-file recording cannot span an update, because the device reboots. The SDK
+finalizes the `.mcap` before applying. Device-local recordings must be stopped
+first, since the device refuses an over-the-air update while recording.
 </Warning>
 
 <Note>
 After a successful reconnect, call `grab()` again to start a new live data
-plane. A firmware update cannot preserve one continuous stream across reboot.
+plane. A firmware update cannot preserve a continuous stream across the reboot.
 </Note>

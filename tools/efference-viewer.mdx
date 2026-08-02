@@ -16,14 +16,14 @@ efference-viewer [--codec raw|h264|h264hq|h265|h265hq] [--h264|--h265]
 - **Wired:** run without connection flags; USB is the default.
 - **Wireless:** pass `--ble <MAC> --udp <linux-host-ip>`.
 - **Headless:** `--headless` (alias `--no-window`) opens and holds the session
-  without a local window. Pair it with `--udp <host>` to have the device push
-  video and IMU to a remote host; without `--udp` there is nothing to show or
+  without a local window. Combine it with `--udp <host>` to have the device push
+  video and IMU to a remote host. Without `--udp` there is nothing to display or
   forward, so every frame is discarded. `--flip` is a host-side display transform
   and has no effect on a forwarded stream.
 - **Quit:** press `Q` or `Esc`, close the window, or press Ctrl-C.
 
 This tool requires an SDK built with OpenCV and FFmpeg, both installed by the
-first-time `./build.sh --deps` run. CMake skips the tool if either is missing.
+initial `./build.sh --deps` run. CMake omits the tool if either is missing.
 
 If the video shows persistent corruption over USB, confirm that `ef-cli info`
 reports a SuperSpeed connection.

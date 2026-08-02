@@ -24,14 +24,14 @@ if (ec == ERROR_CODE::SUCCESS) {
 
 | Field | Meaning |
 |---|---|
-| `camera` / `imu` | live availability right now |
+| `camera` / `imu` | current availability |
 | `passed` | no probe failed |
 | `deep` | the stress tier was included |
 | `checks` | per-probe name, verdict, and detail string |
 | `timestamp` | when the sweep completed |
 
-The last completed sweep stays cached — `get_health_status()` returns it
-without touching the device.
+The last completed sweep remains cached, and `get_health_status()` returns it
+without contacting the device.
 
 ## From the CLI
 
@@ -40,9 +40,9 @@ ef-cli health
 ef-cli health --deep
 ```
 
-Works over USB and Bluetooth LE — a health check needs no data plane, so a
-control-only BLE session is enough.
+Available over USB and Bluetooth LE. A health check requires no data plane, so a
+control-only BLE session is sufficient.
 
 The check verifies subsystem availability and function. Validate stream
-quality separately when your application depends on frame timing or sensor
+quality separately when the application depends on frame timing or sensor
 noise.

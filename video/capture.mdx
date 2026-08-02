@@ -23,7 +23,7 @@ if (dev.open(init) != ERROR_CODE::SUCCESS) return 1;
 Mat image;
 while (true) {
     ERROR_CODE ec = dev.grab();
-    if (ec == ERROR_CODE::GRAB_TIMEOUT)    continue;  // no frame yet — keep looping
+    if (ec == ERROR_CODE::GRAB_TIMEOUT)    continue;  // no frame yet, keep looping
     if (ec == ERROR_CODE::CORRUPTED_FRAME) continue;  // lossy frame dropped
     if (ec != ERROR_CODE::SUCCESS)         break;     // transport fault
 
@@ -31,15 +31,15 @@ while (true) {
     if (image_ec == ERROR_CODE::CORRUPTED_FRAME) continue;
     if (image_ec != ERROR_CODE::SUCCESS)         break;
 
-    // image.getPtr()       — owned pixel buffer
-    // image.getTimestamp() — capture time, device clock
-    // image.getFrameId()   — monotonic counter
+    // image.getPtr()       owned pixel buffer
+    // image.getTimestamp() capture time, device clock
+    // image.getFrameId()   monotonic counter
 }
 dev.close();
 ```
 
 `grab()` returns `GRAB_TIMEOUT` when no frame arrived within
-`InitParameters::grab_timeout_ms` (default 1000 ms). It is non-fatal — loop.
+`InitParameters::grab_timeout_ms` (default 1000 ms). It is non-fatal, so keep looping.
 `CORRUPTED_FRAME` is also non-fatal when partial delivery is enabled.
 `END_OF_BUFFER` is the normal exit for MCAP replay. Other non-`SUCCESS`
 results should end or recover the session.
@@ -61,13 +61,19 @@ for (const SupportedMode& mode : info.capabilities.modes) {
 }
 ```
 
+Each mode also reports `binning`, either `"none"` or `"2x2"`, which is how it
+derives from the full sensor.
+
 Set the session mode in `InitParameters` before `open()`. To change the
 device's persistent boot configuration instead, stop live work and call
 `set_configuration()` while the device is `IDLE`.
 
+Frames arrive as raw fisheye unless the device is set to rectify them itself.
+See [Calibration](/device/calibration#on-device-rectification).
+
 ## Views
 
-`retrieve_image()` converts to the `VIEW` you request:
+`retrieve_image()` converts to the requested `VIEW`:
 
 | VIEW | Layout | Typical use |
 |---|---|---|
@@ -78,7 +84,7 @@ device's persistent boot configuration instead, stop live work and call
 
 Decoding and pixel-format conversion both need FFmpeg. Built without it, the
 only working combination is `COMPRESSION_MODE::RAW` retrieved as `VIEW::NV12`;
-everything else returns `UNSUPPORTED_COMPRESSION` — including `NV12` itself
+everything else returns `UNSUPPORTED_COMPRESSION`, including `NV12` itself
 when the session uses an encoded codec, which is the default. The standard
 `./build.sh --deps` install includes FFmpeg.
 
@@ -100,9 +106,15 @@ Set once in `InitParameters::compression`:
 
 | Mode | Wire format | Notes |
 |---|---|---|
-| `RAW` | uncompressed NV12 | highest bandwidth, no decode needed; USB only |
+| `RAW` | uncompressed NV12 | no decode needed, but USB only |
 | `H264` / `H265` | encoded | default `H265`; decode needs FFmpeg |
-| `H264_HQ` / `H265_HQ` | near-lossless | high-bitrate quality tier |
+| `H264_HQ` / `H265_HQ` | near-lossless | high fixed-quality tier |
+
+Raw NV12 requires approximately 830 Mbit/s at 1200p30, which exceeds the
+capacity of the WiFi link, so requesting `RAW` with `udp_host` set is rejected at
+`open()` with `INSUFFICIENT_WIFI_BANDWIDTH`. Use an encoded codec over WiFi/UDP.
+Raw capture is supported on the wired connection, which provides sufficient
+bandwidth.
 
 The device validates the resolution/fps/codec tuple against its enabled
 capability menu at `open()`; a bad combination fails with
@@ -114,8 +126,8 @@ itself is in `get_device_information().capabilities`.
 A camera mounted upside-down can be corrected host-side with
 `InitParameters::flip_mode`:
 
-- `OFF` (default) / `ON` — fixed
-- `AUTO` — latched once from the first suitable IMU gravity sample
+- `OFF` (default) and `ON` are fixed
+- `AUTO` latches once from the first suitable IMU gravity sample
 
 The flip applies to retrieved images only, never to device-local recordings.
 Image-only consumers are supported: `retrieve_image()` peeks at the latest

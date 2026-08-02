@@ -1,0 +1,73 @@
+---
+title: "Tutorials"
+sidebarTitle: "Overview"
+description: "Runnable C++ programs, one per part of the SDK"
+---
+
+The SDK ships a set of small, self-contained programs under
+[`tutorials/`](https://github.com/EfferenceAI/efference/tree/main/tutorials),
+one topic per directory. Each has its own source, README, and build script, and
+each builds standalone against the installed SDK.
+
+Build the SDK first, then build all tutorials or an individual one:
+
+```sh
+./build.sh                              # from the repo root: SDK + tools
+./build.sh --tutorials                  # every tutorial
+tutorials/serial_number/cpp/build.sh    # or one, from its own folder
+```
+
+Each binary is named after its source file and lands in that tutorial's
+`build/`:
+
+```sh
+tutorials/serial_number/cpp/build/serial_number
+```
+
+## Wired (USB)
+
+| Topic | What it shows |
+|---|---|
+| `serial_number` | The minimal program: open over USB and read `DeviceInformation`. |
+| `health_check` | A `health_check()` sweep, with `--deep` for the stress tier. |
+| `data_stream` | The `grab()` to `retrieve_image()` / `retrieve_imu()` loop. |
+| `grab` | A bare open/grab/retrieve loop for throughput checks and debugging. |
+| `wifi_status` | Reading the M1's WiFi association from the cached snapshot. |
+| `record_and_download` | Record to the device, then pull the MCAP over USB. |
+| `ota_sideload` | Update firmware from a local `.eff` over USB, with no network. |
+
+## Wireless (Bluetooth LE control, WiFi data)
+
+| Topic | What it shows |
+|---|---|
+| `discover_devices` | `get_device_list(scan_ble=true)`: find USB and BLE devices without opening one. |
+| `choosing_a_connection` | The same code path over USB or Bluetooth LE. |
+| `wifi_provisioning` | `wifi_add()` and `wifi_select()` over either transport. |
+| `udp_livestream` | The fully wireless data path: BLE control plus WiFi/UDP video and IMU. |
+| `record_and_upload` | BLE control plus a device-driven upload to an S3 or HTTP URL. |
+| `ota_update` | Firmware update over the device's own WiFi. |
+
+## OpenCV
+
+Built only where both OpenCV and FFmpeg are present. Both use `ef::toCvMat()`
+from `<ef/OpenCV.hpp>` for a zero-copy view of a grabbed frame as a `cv::Mat`.
+
+| Topic | What it shows |
+|---|---|
+| `opencv_display` | `grab()` to `retrieve_image(VIEW::BGR)` to `cv::imshow()`. |
+| `calibrate_camera` | Live checkerboard capture and a Double Sphere intrinsics fit. |
+
+## Calibration
+
+| Topic | What it shows |
+|---|---|
+| `calibrate_imu` | Gyro bias and accelerometer ellipsoid estimation, written to the device. |
+
+Both calibration tutorials need the prebuilt calibration library for your
+architecture and are skipped where it is unavailable. They write to the device,
+so read [Calibration](/device/calibration) before running them.
+
+## Walkthroughs
+
+The pages that follow work through the most common of these inline, with the
+wired and wireless variants side by side.

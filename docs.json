@@ -62,6 +62,7 @@
               "device/connection",
               "video/capture",
               "sensors/imu",
+              "device/calibration",
               "recording/overview",
               "recording/replay",
               "device/health",
@@ -86,6 +87,7 @@
           {
             "group": "Tutorials",
             "pages": [
+              "tutorials/overview",
               "tutorials/connect",
               "tutorials/health-check",
               "tutorials/capture",

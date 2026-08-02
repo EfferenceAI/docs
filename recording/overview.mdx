@@ -10,7 +10,7 @@ through the same API.
 
 | | `HOST_FILE` | `DEVICE_LOCAL` |
 |---|---|---|
-| Written to | a `.mcap` path on your machine | the device's eMMC |
+| Written to | a `.mcap` path on your machine | the device's internal storage |
 | Requires | live data plane (USB or UDP) | control link only |
 | Survives host disconnect | no | **yes** |
 | Typical use | development, debugging | field data collection |
@@ -33,7 +33,7 @@ dev.disable_recording();
 ```
 
 While recording, the SDK drains the IMU on every `grab()` so the file carries
-all queued samples even if you never call `retrieve_imu()`. If the process
+all queued samples even when `retrieve_imu()` is never called. If the process
 stops calling `grab()`, no new host frames are recorded. `close()` finalizes
 an active host file.
 
@@ -44,12 +44,12 @@ Record to the M1, disconnect the host, and retrieve the file later:
 ```cpp
 RecordingParameters rp;
 rp.target = RECORDING_TARGET::DEVICE_LOCAL;
-rp.name   = "run_42";          // "" lets the device pick a name
+rp.name   = "run_42";          // "" has the device generate a name
 dev.enable_recording(rp);
-// safe to close() / disconnect here — recording continues
+// safe to close() / disconnect here; recording continues
 ```
 
-An empty name lets the M1 generate `rec_<utc>_<seq>`. Device-local recording
+An empty name has the M1 generate `rec_<utc>_<seq>`. Device-local recording
 cannot start while another recording, upload, update, or conflicting health
 sweep is active.
 
@@ -66,7 +66,7 @@ dev.download_recording("run_42", "run_42.mcap");  // pull over USB/BLE
 dev.delete_recording("run_42");
 
 uint64_t free_b, total_b;
-dev.get_storage(free_b, total_b);          // eMMC headroom
+dev.get_storage(free_b, total_b);          // device storage headroom
 ```
 
 `download_recording()` uses the control link in chunks and does not require
@@ -75,17 +75,26 @@ re-run resumes it after verifying it belongs to the same recording; the file
 is not a valid MCAP until a run returns `SUCCESS`. `delete_recording()`
 returns immediately and reclaims large files in the background.
 
+Deleting the session that is currently recording returns `DEVICE_BUSY`,
+indicating that the call can be retried once the session stops rather than that
+it failed outright. When a recording call is refused, `last_error_message()`
+reports the device's specific reason; the `ERROR_CODE` provides only the
+category.
+
 ## Stop reasons and power loss
 
+A recording continues until it is stopped, until storage reaches the reserve
+(10% of the recording store, at which point the session finalizes cleanly on its
+own), or until power is lost.
+
 `RecordingStatus::stopped_reason` says why a completed session ended: `USER`,
-`DISK_FULL` (the device finalizes cleanly when the recording store reaches its
-reserve), `WRITE_ERROR`, or `INTERRUPTED` for a power cut. It reads
+`DISK_FULL`, `WRITE_ERROR`, or `INTERRUPTED` for a power cut. It reads
 `UNSPECIFIED` while recording and from firmware older than v00.09.16.
 
 After a power loss the M1 recovers the interrupted session on its next boot.
 An unencrypted recording is salvaged into a normal, listed, downloadable MCAP
-covering everything flushed before the cut. An encrypted one cannot be
-repaired on the device (the ciphertext is opaque to it), so it is listed with
+covering everything flushed up to roughly 250 ms before the cut. An encrypted one
+cannot be repaired on the device (the ciphertext is opaque to it), so it is listed with
 `RecordingStatus::partial` set and served as-is: `download_recording()` and
 uploads move the partial bytes, and `ef-decrypt` recovers everything up to the
 cut with a truncated-tail warning.
@@ -109,7 +118,7 @@ With WiFi provisioned, the M1 can upload a stopped recording with HTTP PUT:
 
 ```cpp
 dev.upload_recording("run_42", "https://bucket.s3.amazonaws.com/...");
-// poll get_recording_status(rs, "run_42") — rs.upload, rs.upload_bytes_sent
+// poll get_recording_status(rs, "run_42"): rs.upload, rs.upload_bytes_sent
 dev.stop_upload("run_42");   // cancel
 ```
 

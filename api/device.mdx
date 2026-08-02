@@ -1,6 +1,6 @@
 ---
 title: "Device"
-description: "The device handle — lifecycle, data plane, and control plane"
+description: "The device handle: lifecycle, data plane, and control plane"
 ---
 
 `ef::Device` is the single entry point to the SDK. It is move-only (one handle
@@ -9,14 +9,14 @@ owns one device session).
 Key behavior:
 
 - `open()` claims and configures a live device, caches its identity, and
-  normally leaves it ready in `IDLE` (existing device activity may report
+  normally leaves it ready in `IDLE` (pre-existing device activity may report
   `STREAMING`). The first `grab()` starts the USB or WiFi/UDP data plane.
   MCAP replay creates its reader during `open()`.
-- Calls that touch the wire return `ERROR_CODE`; data comes back through
-  `out` parameters. `get_*` methods without an `ERROR_CODE` never block —
-  they return cached values.
-- Illegal calls for the current `DEVICE_STATE` return
-  `INVALID_FUNCTION_CALL` without touching the device.
+- Calls that communicate with the device return `ERROR_CODE` and return data
+  through `out` parameters. `get_*` methods without an `ERROR_CODE` do not
+  block and return cached values.
+- Calls that are invalid for the current `DEVICE_STATE` return
+  `INVALID_FUNCTION_CALL` without contacting the device.
 
 ## Lifecycle
 
@@ -24,8 +24,8 @@ Key behavior:
 static std::vector<DeviceProperties> get_device_list(bool scan_ble = false,
                                                      uint32_t scan_ms = 3000);
 ```
-Discover attached devices — USB always, BLE advertisers when `scan_ble` is
-set. Static: needs no open handle.
+Discovers attached devices: USB in all cases, and BLE advertisers when
+`scan_ble` is set. Static, so no open handle is required.
 
 ```cpp
 ERROR_CODE open(InitParameters params = InitParameters());
@@ -42,25 +42,26 @@ capability menu (`INVALID_RESOLUTION` / `INVALID_FPS` /
 not stop a device-local recording. `get_state()`
 returns the last known `DEVICE_STATE` and never blocks.
 
-`is_authenticated()` reports whether this session proved the control password. It
-is meaningful only when the device gates the link, which means any BLE link or a
-USB one where `DeviceInformation::usb_locked` is set. `open()` deliberately
-**succeeds with a wrong password**, because a gated device still answers `info`,
-`state` and `storage`, and those are what an operator needs while recovering a
-device whose password they have lost. Check this before calling a gated verb. See
-[Access Control and Encryption](/device/security).
+`is_authenticated()` reports whether this session has supplied a valid control
+password. It is meaningful only when the device gates the link, which applies to
+any BLE link and to a USB link where `DeviceInformation::usb_locked` is set.
+`open()` **succeeds with an incorrect password**, because a gated device still
+responds to `info`, `state` and `storage`, which an operator requires when
+recovering a device whose password has been lost. Check this value before calling
+a gated verb. See [Access Control and Encryption](/device/security).
 
 ```cpp
 bool poll_fault(std::string* reason = nullptr);
 ```
-Refresh the device state from the firmware state machine (so a following
-`get_state()` is fresh too) and report whether a fault is latched. A latched
-device has entered SAFE and needs a health-gated recovery; because the
-`DEVICE_STATE` enum has no fault value it projects `CLOSED`, so `poll_fault` is
-how you tell a fault-closed device from a not-open one. When `reason` is set it
-receives the most recent anomaly cause, populated both for a latched fault and
-for an abnormal session end (for example `disk_full`, `capture_stopped`), and
-empty once a clean session starts, so check `reason` even when the return is
+Refreshes the device state from the firmware state machine, so a subsequent
+`get_state()` is also current, and reports whether a fault is latched. A latched
+device has entered SAFE and requires a health-gated recovery. Because the
+`DEVICE_STATE` enum has no fault value, such a device reports `CLOSED`, so
+`poll_fault` is the means of distinguishing a fault-closed device from one that
+is simply not open. When `reason` is supplied it receives the most recent anomaly
+cause. It is populated both for a latched fault and for an abnormal session end
+(for example `disk_full` or `capture_stopped`), and is empty once a session
+starts cleanly, so `reason` should be checked even when the return value is
 `false`.
 
 ## Data plane
@@ -69,24 +70,25 @@ empty once a clean session starts, so check `reason` even when the return is
 ERROR_CODE grab(RuntimeParameters params = RuntimeParameters());
 RuntimeParameters get_runtime_parameters() const;
 ```
-Block until the next frame is assembled (at most `grab_timeout_ms`).
-Returns `SUCCESS`, `GRAB_TIMEOUT` (non-fatal, loop), `CORRUPTED_FRAME`
-(lossy frame; delivered only with `return_partial`), `END_OF_BUFFER`
-(MCAP replay exhausted), or `COMMUNICATION_ERROR` (transport died).
+Blocks until the next frame is assembled, for at most `grab_timeout_ms`.
+Returns `SUCCESS`, `GRAB_TIMEOUT` (non-fatal; continue the loop),
+`CORRUPTED_FRAME` (a lossy frame, delivered only with `return_partial`),
+`END_OF_BUFFER` (MCAP replay exhausted), or `COMMUNICATION_ERROR` (the transport
+has failed).
 
 ```cpp
 ERROR_CODE retrieve_image(Mat& mat, VIEW view = VIEW::NV12);
 ```
-Decode/convert the grabbed frame into `mat` in the requested `VIEW`. The `Mat`
-owns its buffer. Without the FFmpeg build the only supported combination is a
-`COMPRESSION_MODE::RAW` session retrieved as `VIEW::NV12`; anything else
-returns `UNSUPPORTED_COMPRESSION`.
+Decodes and converts the grabbed frame into `mat` in the requested `VIEW`. The
+`Mat` owns its buffer. In a build without FFmpeg, the only supported combination
+is a `COMPRESSION_MODE::RAW` session retrieved as `VIEW::NV12`; any other
+combination returns `UNSUPPORTED_COMPRESSION`.
 
 ```cpp
 ERROR_CODE retrieve_imu(SensorsData& data,
                         TIME_REFERENCE ref = TIME_REFERENCE::IMAGE);
 ```
-Drain queued IMU samples in chronological order.
+Drains queued IMU samples in chronological order.
 
 ```cpp
 Timestamp get_timestamp(TIME_REFERENCE ref = TIME_REFERENCE::CURRENT) const;
@@ -98,9 +100,23 @@ wall clock now.
 
 ```cpp
 DeviceInformation get_device_information() const;    // cached at open()
+ERROR_CODE refresh_device_information();             // retake the snapshot
 ERROR_CODE health_check(HealthStatus& out, bool deep = false);  // blocks
 HealthStatus get_health_status() const;              // last completed sweep
 ```
+
+`get_device_information()` returns a cached snapshot and performs no device
+communication. The snapshot is captured at `open()` and updated by the WiFi
+calls, so a handle held open across a network change continues to report the
+values captured earlier. Call `refresh_device_information()` to update it, as
+`poll_fault()` does for device state, and read the struct again afterwards:
+the accessor returns by value, so copies taken earlier are unaffected.
+
+If the transport is unavailable at the time of the refresh, the WiFi association
+and the BLE link are reset to unknown rather than retaining their previous
+values, so a disconnected device does not continue to report itself as
+connected. The health status is retained, because it records a sweep that
+completed and clearing it would misreport a healthy device as failed.
 
 ## Recording
 
@@ -117,8 +133,8 @@ ERROR_CODE download_recording(const std::string& name, const std::string& dest_p
 ERROR_CODE upload_recording(const std::string& name, const std::string& url);
 ERROR_CODE stop_upload(const std::string& name);
 ```
-`HOST_FILE` writes the live stream to a local MCAP file. `DEVICE_LOCAL`
-records on the M1 and survives `close()` or disconnect. Downloads use the
+`HOST_FILE` writes the live stream to a local MCAP file. `DEVICE_LOCAL` records
+on the M1 and continues across `close()` or a host disconnect. Downloads use the
 USB or Bluetooth LE (BLE) control link; uploads use WiFi.
 
 ## Updates
@@ -131,14 +147,15 @@ ERROR_CODE abort_update();
 ERROR_CODE get_update_status(UpdateStatus& out);
 const std::string& last_error_message() const;
 ```
-`check_update()` is one host-side request to the update-check service and
-downloads nothing. An empty `url` means "install what the service offers"; an
-`https://` URL is downloaded as given; a **local `.eff` path** is pushed over the
-wire, which needs USB. `update()` blocks through apply and reboot, reporting
-progress via the callback.
+`check_update()` issues a single host-side request to the update-check service
+and downloads nothing. An empty `url` installs whatever the service offers, an
+`https://` URL is downloaded as given, and a **local `.eff` path** is transferred
+over the wire, which requires USB. `update()` blocks through apply and reboot,
+reporting progress through the callback.
 
-`last_error_message()` returns whatever refused, the device or the service, in its
-own words. The `ERROR_CODE` is a category, and this is usually the actionable part.
+`last_error_message()` returns the reason reported by whichever component refused
+the operation, the device or the service. The `ERROR_CODE` provides the category,
+while this message is generally the actionable detail.
 
 ## WiFi, time, location, admin
 
@@ -180,49 +197,53 @@ ERROR_CODE delete_encryption_key(const std::string& key_id, EncryptionKey& out);
 ERROR_CODE factory_reset();
 ```
 
-`set_usb_lock` locks or unlocks the USB control plane. Unlocked (the factory
-default) USB has full privileges; locked, it gates exactly like BLE and `open()`
-authenticates with `InitParameters::ble_password`. Toggling either way requires
-the current password. `session_only` opens an **already locked** device for this
-power session without changing the stored policy, so the device keeps reporting
-`usb_locked` and loses the override when power is lost; it is refused on a device
-that is not locked, and authenticating never sets it implicitly.
+`set_usb_lock` locks or unlocks the USB control plane. Unlocked, the factory
+default, USB has full privileges. Locked, it gates exactly as BLE does and
+`open()` authenticates with `InitParameters::ble_password`. Changing it in either
+direction requires the current password. `session_only` opens an **already
+locked** device for the current power session without changing the stored policy,
+so the device continues to report `usb_locked` and the override is lost when
+power is removed. It is refused on a device that is not locked, and
+authentication never sets it implicitly.
 
-`set_encryption` turns at-rest encryption on or off for subsequent recordings.
-Existing ones keep whatever they were written with. It returns
-`INVALID_PARAMETER` when no key exists, so `enabled` never means "recording in
-the clear".
+`set_encryption` enables or disables at-rest encryption for subsequent
+recordings. Existing recordings retain the state they were written with. It
+returns `INVALID_FUNCTION_CALL` when no key exists, so `enabled` never indicates
+that recordings are being written unencrypted. Read `last_error_message()` for
+the device's specific reason for any refusal described below; the `ERROR_CODE`
+provides only the category.
 
-`create_encryption_key` generates the device's key and returns it. This is the
-only time the key is handed out in full, so the caller must keep it: it is what
-decrypts every recording made from then on. It is refused with
-`INVALID_PARAMETER` when a key already exists, because replacing one would make
-every recording written under it permanently undecryptable. Rotation is
-`delete_encryption_key` then create.
+`create_encryption_key` generates the device key and returns it. This is the only
+occasion on which the key is returned in full, so the caller must retain it: it
+decrypts every recording made from that point onward. It is refused with
+`INVALID_FUNCTION_CALL` when a key already exists, because replacing one would
+render every recording written under it permanently undecryptable. Rotation is
+`delete_encryption_key` followed by create.
 
 `delete_encryption_key` requires `key_id` to match the installed key (see
-`DeviceInformation::encryption_key_id`), which stops a caller destroying a key it
-never identified; a mismatch is `INVALID_PARAMETER`. `out` carries the destroyed
-key with `present == false`, the last chance to keep it for ciphertext already
-recorded. It is `IDLE` only, since a running session holds the key in memory and
-would keep encrypting under it after the call reported it gone.
+`DeviceInformation::encryption_key_id`), which prevents a caller from destroying
+a key it has not identified; a mismatch returns `INVALID_FUNCTION_CALL`. `out`
+contains the destroyed key with `present == false`, which is the final
+opportunity to retain it for ciphertext already recorded. It requires the `IDLE`
+state, since a running session holds the key in memory and would continue
+encrypting under it after the call reported it destroyed.
 
 `factory_reset` restores defaults: password, USB unlocked, encryption off, and
 WiFi, calibration, capture configuration, recordings and runtime state cleared.
-It is ungated on USB only, so physical possession is the escape when the password
-is lost; over BLE it needs the password like any other verb. It is refused while
-a capture is active.
+It is ungated on USB only, so that physical possession provides a recovery path
+when the password is lost; over BLE it requires the password like any other verb.
+It is refused while a capture is active.
 
 <Warning>
-`factory_reset` **destroys the encryption key**. Every recording ever made under
-it becomes permanently undecryptable, including copies already uploaded
-elsewhere. Unlike `delete_encryption_key` it does not return the key first,
-because it answers unauthenticated over USB and handing a key to an
-unauthenticated caller is the exposure destroying it removes.
+`factory_reset` **destroys the encryption key**. Every recording made under it
+becomes permanently undecryptable, including copies already transferred
+elsewhere. Unlike `delete_encryption_key`, it does not return the key first,
+because it responds unauthenticated over USB and returning a key to an
+unauthenticated caller is the exposure that destroying it removes.
 </Warning>
 
-Read the current state from `get_device_information()`. The prose model, the CLI
-equivalents, and host-side decryption with `ef-decrypt` are in
+Read the current state from `get_device_information()`. The conceptual model, the
+CLI equivalents, and host-side decryption with `ef-decrypt` are covered in
 [Access Control and Encryption](/device/security).
 
 ## Calibration
@@ -233,13 +254,27 @@ ERROR_CODE set_camera_calibration(const CalibrationParameters& calibration,
 ERROR_CODE set_imu_calibration(const ImuCalibrationParameters& calibration);
 ERROR_CODE reset_calibration(bool camera, bool imu = false);
 ```
-All three are `IDLE` only and take effect on the next capture session.
+All three require the `IDLE` state and take effect on the next capture session.
 `set_camera_calibration` persists the Double Sphere intrinsics produced by the
-OpenCV calibration tool; read them back through
+OpenCV calibration tool. Read them back through
 `get_device_information().camera_configuration.calibration`.
-`set_imu_calibration` persists the IMU field calibration (bias, `M*S`, per-sensor
-noise and temporal terms, the camera-to-IMU transform, and the time offset) from
-the host-side solve, and round-trips through
-`get_device_information().sensors_configuration`. `reset_calibration` restores the
-factory default for the selected sensors; the camera factory default is all zeros
-(uncalibrated).
+
+`CalibrationParameters` also carries two rectification fields:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `rectify` | `false` | undistort frames on the device using these intrinsics |
+| `fov_scale` | `1.0` | rectified output field of view: `<1` widens (more periphery, black corners), `>1` zooms the center |
+
+The intrinsics are published as recording metadata in either configuration, so a
+host consumer can perform rectification instead. With `rectify` enabled, the
+device produces rectilinear frames and `fov_scale` determines how much of the
+lens field they cover. With it disabled, frames remain raw fisheye under the
+double-sphere model.
+
+`set_imu_calibration` persists the IMU field calibration from the host-side
+solve, comprising bias, `M*S`, per-sensor noise and temporal terms, the
+camera-to-IMU transform, and the time offset. All fields round-trip through
+`get_device_information().sensors_configuration`. `reset_calibration` restores
+the factory default for the selected sensors. The camera factory default is all
+zeros, meaning uncalibrated.

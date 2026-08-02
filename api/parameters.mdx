@@ -5,8 +5,8 @@ description: "InitParameters, RuntimeParameters, RecordingParameters"
 
 ## InitParameters
 
-Passed to `open()`. Transport selection plus the session configuration —
-validated against the device's advertised capabilities; an unsupported
+Passed to `open()`. Transport selection plus the session configuration,
+validated against the device's advertised capabilities. An unsupported
 combination fails with `INVALID_RESOLUTION` / `INVALID_FPS` /
 `UNSUPPORTED_COMPRESSION`.
 
@@ -15,10 +15,10 @@ combination fails with `INVALID_RESOLUTION` / `INVALID_FPS` /
 | Field | Default | Meaning |
 |---|---|---|
 | `input_type` | `USB` | `USB`, `STREAM` (BLE control), or `MCAP` (replay) |
-| `ble_address` | — | BLE MAC, required for `STREAM` |
-| `mcap_path` | — | file path, required for `MCAP` |
+| `ble_address` | none | BLE MAC, required for `STREAM` |
+| `mcap_path` | none | file path, required for `MCAP` |
 | `device_id` | `0` | which M1 when several are on USB |
-| `udp_host` | `""` | `STREAM` only: this host's IP — device pushes video+IMU here. Empty = control-only session |
+| `udp_host` | `""` | `STREAM` only: this host's IP, where the device pushes video and IMU. Empty = control-only session |
 | `udp_port` | `5005` | UDP stream port |
 | `ble_password` | `"123456"` | control password; used on any BLE link, and on USB once locked |
 
@@ -57,6 +57,6 @@ Passed to `enable_recording()`:
 | Field | Default | Meaning |
 |---|---|---|
 | `target` | `HOST_FILE` | `HOST_FILE` (local `.mcap`) or `DEVICE_LOCAL` (on-device) |
-| `path` | — | HOST_FILE: output `.mcap` path |
+| `path` | none | HOST_FILE: output `.mcap` path |
 | `name` | `""` | DEVICE_LOCAL: session name (`""` = device picks `rec_<utc>_<seq>`) |
 | `has_location` / `location` | unset | per-session `Location` override |

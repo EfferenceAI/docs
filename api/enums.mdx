@@ -3,7 +3,9 @@ title: "Enums"
 description: "Every public enumeration, with semantics"
 ---
 
-All enums live in `<ef/Enums.hpp>` and have a `to_string()` overload.
+These enums live in `<ef/Enums.hpp>` and each has a `to_string()` overload. The
+one exception is `ENCRYPTION_ALGORITHM`, which is declared in `<ef/Core.hpp>`
+next to the structs that carry it and has no `to_string()`.
 
 ## ERROR_CODE
 
@@ -32,7 +34,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `INVALID_FIRMWARE` | corrupted/unrecognized firmware image |
 | `INVALID_FUNCTION_CALL` | call illegal in the current `DEVICE_STATE` |
 | `INVALID_PASSWORD` | control password rejected (challenge-response failed); any BLE link, or USB once locked |
-| `INSUFFICIENT_PERMISSIONS` | USB access denied — install the udev rule |
+| `INSUFFICIENT_PERMISSIONS` | USB access denied; install the udev rule |
 | `UNSUPPORTED` | not supported in this build |
 | `DEVICE_BUSY` | device busy (recording or livestreaming); retry once idle |
 
@@ -55,10 +57,10 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 ### 80–99 · Streaming & recording
 | Value | Meaning |
 |---|---|
-| `CORRUPTED_FRAME` | lossy/invalid frame — delivered only with `RuntimeParameters::return_partial`, otherwise dropped |
+| `CORRUPTED_FRAME` | lossy/invalid frame, delivered only with `RuntimeParameters::return_partial`, otherwise dropped |
 | `SESSION_RECORDING_ERROR` | recording failed |
 | `END_OF_BUFFER` | MCAP replay exhausted |
-| `GRAB_TIMEOUT` | no frame within `grab_timeout_ms` — non-fatal, keep looping |
+| `GRAB_TIMEOUT` | no frame within `grab_timeout_ms`; non-fatal, keep looping |
 | `STORAGE_FULL` | device storage below the free-space floor |
 | `RECORDING_NOT_FOUND` / `RECORDING_ALREADY_EXISTS` | name errors |
 
@@ -69,7 +71,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | Enum | Values | Notes |
 |---|---|---|
 | `INPUT_TYPE` | `USB`, `STREAM`, `MCAP` | transport in `InitParameters` |
-| `RESOLUTION` | `HD1200` (1920×1200), `HD1080` (1920×1080), `SVGA` (960×600), `AUTO` | `AUTO` = device native |
+| `RESOLUTION` | `HD1200` (1920×1200), `HD1080` (1920×1080), `SVGA` (960×600), `AUTO` | `AUTO` = device native. The enum defines the available names; the modes a given device accepts are listed in `capabilities.modes` |
 | `COMPRESSION_MODE` | `RAW`, `H264`, `H264_HQ`, `H265`, `H265_HQ` | `_HQ` = near-lossless tier |
 | `IMU_DATA` | `RAW`, `CALIBRATED`, `BOTH` | on-device IMU handling for a session; `RAW` records uncalibrated and carries the calibration as metadata, `CALIBRATED` applies `M*S*(x-b)` per sample, `BOTH` emits both |
 | `FLIP_MODE` | `ON`, `OFF`, `AUTO` | `AUTO` decides from IMU gravity |

@@ -1,6 +1,6 @@
 ---
 title: "IMU"
-description: "Accelerometer and gyroscope data — retrieval, timestamps, and motion state"
+description: "Accelerometer and gyroscope data: retrieval, timestamps, and motion state"
 ---
 
 The M1 streams IMU samples alongside video on the same transport.
@@ -40,7 +40,7 @@ while (dev.grab() == ERROR_CODE::SUCCESS) {
 ## Timestamps and ordering
 
 Sample timestamps are on the device clock, the same timebase as
-`Mat::getTimestamp()` — so associating IMU windows to frames is a direct
+`Mat::getTimestamp()`, so associating IMU windows to frames is a direct
 comparison. `sequence` increments per sample; a gap means samples were lost
 in transit (lossy UDP) or overrun (`dropped`).
 
@@ -59,12 +59,19 @@ are cached at `open()`:
 
 ```cpp
 SensorsConfiguration sc = dev.get_device_information().sensors_configuration;
+// sc.accelerometer.sampling_rate   Hz
+// sc.accelerometer.range           +/- g (accel) or +/- deg/s (gyro)
 // sc.accelerometer.noise_density
 // sc.gyroscope.noise_density
-// sc.camera_imu_transform   (4x4, camera frame -> IMU frame)
+// sc.camera_imu_transform          4x4, camera frame -> IMU frame
 ```
 
+Read the rate from `sampling_rate` rather than assuming one. The block also
+carries the stored field calibration (`accel_bias`, `gyro_bias`, the two 3×3
+scale-misalignment matrices, and `time_offset_ns`), which is what
+[Calibration](/device/calibration#imu-calibration) writes.
+
 <Note>
-Disable the IMU with `InitParameters::enable_imu = false` if you only need
-video — it removes the IMU packets from the wire entirely.
+Disable the IMU with `InitParameters::enable_imu = false` when only video is
+required. This removes the IMU packets from the wire entirely.
 </Note>

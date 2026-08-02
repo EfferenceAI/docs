@@ -15,10 +15,10 @@ ef-cli [--ble <MAC>] [--device <id>] [--password <pw>] [--udp <host[:port]>] [--
 | Flag | Meaning |
 |---|---|
 | `--ble <MAC>` | connect over Bluetooth LE instead of USB |
-| `--device <id>` | pick one of several USB devices |
+| `--device <id>` | select among multiple attached USB devices |
 | `--password <pw>` | control password (factory default `123456`); always needed on BLE, and on USB once locked |
-| `--udp <host[:port]>` | with `--ble`: device streams to this host over WiFi/UDP |
-| `--verbose` | print control traffic |
+| `--udp <host[:port]>` | with `--ble`: device streams to this host over WiFi/UDP (default port 5005) |
+| `--verbose` | print control traffic; over BLE, also print phase-by-phase connect timing as `[ble] +NNNN ms <phase>` |
 
 ## Commands
 
@@ -38,11 +38,20 @@ ef-cli config set 1920 1200 30 h265   # persist a capture config (idle only)
 ef-cli calibration [--get]            # show camera + IMU calibration
 ef-cli calibration --camera --set <fx> <fy> <cx> <cy> <xi> <alpha> <W> <H> [--rectify on|off] [--fov-scale <s>]
                                       # set camera intrinsics (idle only; always
-                                      # published as metadata, --rectify toggles
-                                      # on-device FEC rectification)
-ef-cli calibration --imu --mode <raw|calibrated|both>   # on-device IMU handling for the session
+                                      # published as recording metadata)
+ef-cli calibration --camera [--rectify on|off] [--fov-scale <s>]
+                                      # change rectification without retyping the
+                                      # intrinsics: reads the stored calibration,
+                                      # edits the named flags, resends it
+ef-cli calibration --imu --mode <raw|calibrated|both>   # how recordings carry the IMU calibration
 ef-cli calibration [--camera|--imu] --reset             # reset to factory default
 ```
+
+With `--rectify on` the device undistorts frames itself and produces
+rectilinear images. With it off, the default, frames remain raw fisheye.
+`--fov-scale` accepts a positive number and sets the rectified field of view,
+`1.0` by default, with lower values wider and higher values zoomed. The complete
+model is in [Calibration](/device/calibration).
 
 ### Health
 
@@ -55,7 +64,7 @@ ef-cli health [--deep]        # on-device sweep; --deep adds the stress tier
 ```sh
 ef-cli record start [name] [--location LAT,LON[,ALT]]
                               # device-local recording (survives disconnect);
-                              # --location overrides just this recording
+                              # --location applies to this recording only
 ef-cli record stop
 ef-cli record status [name]
 ef-cli record list            # each entry marked [encrypted] or [unencrypted]
@@ -64,8 +73,8 @@ ef-cli download <name> [dest] # pull over USB/BLE (default <name>.mcap, bytes as
 ef-cli storage                # free/total on the recording store
 ```
 
-`download` never decrypts. An encrypted recording arrives as ciphertext, so give
-it a destination and run it through `ef-decrypt`. See
+`download` never decrypts. An encrypted recording is transferred as ciphertext,
+so specify a destination and process it with `ef-decrypt`. See
 [Access Control and Encryption](/device/security#reading-an-encrypted-recording).
 
 ### Upload
@@ -85,13 +94,18 @@ ef-cli update --file firmware.eff      # sideload a local image over USB
 ef-cli abort-update
 ```
 
+Name the source explicitly. A bare path remains supported for compatibility but
+is inferred: the CLI treats it as a local bundle only if the file exists on disk,
+so a mistyped path is fetched as a URL rather than reported as an error.
+
 ### WiFi & misc
 
 ```sh
 ef-cli wifi add <ssid> [psk [country]]
 ef-cli wifi remove <ssid> | select <ssid> | status
 ef-cli wifi list                       # saved networks (marks the connected one)
-ef-cli wifi scan                       # access points in range (not while recording)
+ef-cli wifi scan                       # top 10 access points in range, strongest
+                                       # first (not while recording or streaming)
 ef-cli sync-time                       # set the device clock from the host
 ef-cli time                            # read the device wall clock
 ef-cli location                        # read the device's current location
@@ -118,8 +132,9 @@ ef-cli key show [--out <file>]         # print the key, or write it to a new 060
 ef-cli factory-reset [--yes]           # restore defaults; DESTROYS the encryption key
 ```
 
-`--yes` is required when there is no terminal to prompt on: the two destructive
-commands refuse rather than prompt from cron or `ssh box 'ef-cli ...'`.
+`--yes` is required when no terminal is available for prompting: the two
+destructive commands refuse rather than prompt under cron or
+`ssh box 'ef-cli ...'`.
 
 Separate binary, built alongside `ef-cli` when libcrypto is present:
 
@@ -127,5 +142,6 @@ Separate binary, built alongside `ef-cli` when libcrypto is present:
 ef-decrypt <in.enc> <key-file> <out.mcap>
 ```
 
-Full model, including what stays readable on a locked device and what a factory
-reset destroys, in [Access Control and Encryption](/device/security).
+The complete model, including which fields remain readable on a locked device
+and what a factory reset destroys, is in
+[Access Control and Encryption](/device/security).

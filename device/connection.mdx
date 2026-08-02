@@ -71,13 +71,13 @@ ef::ERROR_CODE status = device.open(init);
 
 Leaving `udp_host` empty creates a control-only session.
 
-An incorrect password does **not** fail the `open()`. The device still answers
-`info`, `state` and `storage` unauthenticated, and those are exactly what an
-operator needs to diagnose a device whose password they have lost, so failing
-here would hide them behind the credential being recovered. The gated verbs
-report `INVALID_PASSWORD` on their own. Check up front with
-`device.is_authenticated()`, which is meaningful on any BLE link and on a USB one
-the device reports as locked. See [Access Control and
+An incorrect password does **not** cause `open()` to fail. The device continues
+to answer `info`, `state` and `storage` unauthenticated, and these are required
+to diagnose a device whose password has been lost, so failing here would place
+them behind the credential being recovered. The gated verbs report
+`INVALID_PASSWORD` individually. Check in advance with
+`device.is_authenticated()`, which is meaningful on any BLE link and on a USB
+link the device reports as locked. See [Access Control and
 Encryption](/device/security).
 
 ## Add wireless live data
@@ -104,10 +104,10 @@ network, and the host firewall must permit the selected UDP port.
 
 `open()` claims the control transport, validates capture settings, aligns the
 device clock, and caches device information. It normally leaves the handle in
-`IDLE`; existing device activity may report `STREAMING`.
+`IDLE`, though pre-existing device activity may report `STREAMING`.
 
-The first `grab()` starts the USB or WiFi/UDP data plane. Control-only work
-therefore does not start an unnecessary live stream.
+The first `grab()` starts the USB or WiFi/UDP data plane, so control-only work
+does not start a live stream unnecessarily.
 
 MCAP replay is the exception: `open()` creates the reader and reports
 `STREAMING`.
@@ -129,8 +129,21 @@ for (const ef::SupportedMode& mode : info.capabilities.modes) {
 }
 ```
 
-This cached accessor does not block or access the device. WiFi provisioning
-calls refresh the cached wireless fields after the command is accepted.
+This cached accessor does not block or access the device. The snapshot is
+captured at `open()` and updated by the WiFi calls, so a handle held open across
+a network change continues to report the values captured earlier. Request an
+update explicitly when current values are required:
+
+```cpp
+if (dev.refresh_device_information() == ef::ERROR_CODE::SUCCESS)
+    info = dev.get_device_information();   // copies taken earlier are unaffected
+```
+
+If the transport is unavailable at the time of the refresh, the WiFi association
+and the BLE link are reset to unknown rather than retaining their previous
+values, so a disconnected device does not continue to report itself as
+connected. The health status is retained, because it records a sweep that
+completed.
 
 ## Close the session
 
@@ -139,8 +152,8 @@ device.close();
 ```
 
 Closing stops a host live stream and finalizes a host-file recording, then
-releases the transport. It intentionally does **not** stop a device-local
-recording, which is designed to survive host disconnects.
+releases the transport. It does **not** stop a device-local recording, which is
+designed to continue across host disconnects.
 
 Calling `open()` on an already open handle returns
 `INVALID_FUNCTION_CALL`. Close it before opening a different transport or
@@ -153,8 +166,14 @@ device.
 | `DEVICE_NOT_DETECTED` | No matching USB device, BLE device, or MCAP file |
 | `INSUFFICIENT_PERMISSIONS` | USB device found but blocked by host permissions |
 | `DEVICE_NOT_AVAILABLE` | Device found but could not be opened |
+| `DEVICE_BUSY` | Another process already holds this device over USB |
 | `INVALID_FUNCTION_CALL` | Invalid state, missing BLE support, missing required path/address, or repeated `open()` |
 | `COMMUNICATION_ERROR` | Control transport failed during the session |
 
-`INVALID_PASSWORD` is not in this table on purpose: authentication failure does
-not surface from `open()`, only from the gated verb you call afterwards.
+USB control permits one client per cable. While an SDK application or `ef-cli`
+holds the device open, a second USB `open()` is refused with `DEVICE_BUSY`. BLE
+remains available in parallel, so a long-running USB application does not prevent
+operator access to the device.
+
+`INVALID_PASSWORD` is deliberately absent from this table: authentication failure
+is not reported by `open()`, only by the gated verb called subsequently.

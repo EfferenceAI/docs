@@ -28,20 +28,21 @@ dev.close();
 
 Replay differs from a live session in four ways:
 
-- `grab()` returns `END_OF_BUFFER` when the file runs out — the one loop-exit
+- `grab()` returns `END_OF_BUFFER` when the file is exhausted, the one loop-exit
   condition unique to replay.
 - The recording's codec overrides `InitParameters::compression`; the SDK
   decodes the format stored in the file.
 - Control-plane calls (health, WiFi, recording management) return
-  `INVALID_FUNCTION_CALL` — there is no device.
+  `INVALID_FUNCTION_CALL`, since there is no device.
 - Timestamps are the original capture timestamps from the recording.
 
-Both host-file and device-local recordings replay identically — they share
-one schema. Recordings also open directly in Foxglove. To extract the raw
+Both host-file and device-local recordings replay identically, since they
+share one schema. Recordings also open directly in Foxglove. To extract the raw
 H.264/H.265 elementary stream from a session, use the bundled script:
 
 ```sh
 python3 sdk/linux/tools/mcap_to_video.py session.mcap session.h265
 ```
-The script writes an elementary stream, not a container. Wrap it to get a
-playable file, for example `ffmpeg -i session.h265 -c copy session.mp4`.
+The script writes an elementary stream, not a container. Wrap it in a container
+to produce a playable file, for example
+`ffmpeg -i session.h265 -c copy session.mp4`.

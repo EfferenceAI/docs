@@ -56,11 +56,39 @@ The binaries are written to `sdk/linux/build/`:
 |---|---|
 | `ef-cli` | Device discovery, configuration, health, recording, WiFi, and updates |
 | `efference-viewer` | Decoded live video with IMU status |
+| `ef-decrypt` | Turns an encrypted recording back into a plain MCAP |
+
+`efference-viewer` and `ef-decrypt` are built only when their optional
+dependencies are present, and the configure output says which were found. The
+viewer needs OpenCV and FFmpeg, `ef-decrypt` needs libssl-dev; `--deps` installs
+both sets.
 
 <Note>
 After installation, run `./build.sh` to rebuild without changing packages or
-USB permissions.
+USB permissions. To install only the udev rule, run
+`sdk/linux/build.sh --udev`.
 </Note>
+
+## Put the tools on your PATH
+
+Invoking the tools by their full path always works. For regular use, choose one
+of the following:
+
+```sh
+source env.sh                    # add ef-cli to PATH for this shell
+sdk/linux/build.sh --install     # install for every shell (needs sudo)
+```
+
+`--install` copies `ef-cli` and `ef-decrypt` onto your PATH and installs the
+library, its headers, and the calibration shared objects, so `find_package(ef)`
+resolves in your own CMake project. Because it copies rather than links, re-run
+it after every rebuild. `efference-viewer` is not installed; run it from
+`sdk/linux/build/`.
+
+`source env.sh` puts the build directory itself on PATH, so it is current the
+moment a build finishes, and it also sets `CMAKE_PREFIX_PATH` so the tutorials
+resolve `find_package(ef)`. It works from any directory if you give its full
+path, and adding that line to `~/.bashrc` makes it apply to every new shell.
 
 ## Next step
 

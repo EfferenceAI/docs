@@ -15,13 +15,19 @@ if (ec == ERROR_CODE::SUCCESS) {
 }
 ```
 
-The optional ISO country code sets the regulatory domain. Saved networks
-persist on the device.
+The optional ISO country code sets the regulatory domain, and `US` is what
+unlocks 5 GHz. Saved networks persist on the device.
 
 ```cpp
 dev.wifi_remove("MyNetwork");     // forget
 dev.wifi_select("MyNetwork");     // prefer among saved networks
 ```
+
+<Note>
+The M1 joins WPA2-PSK and WPA3-SAE (Personal) networks. Enterprise networks that
+authenticate with 802.1X/EAP are not supported, so a corporate SSID generally
+needs a guest or IoT network instead.
+</Note>
 
 ## Read the connection state
 
@@ -34,17 +40,40 @@ WirelessConfiguration w = dev.get_device_information().wireless;
 // w.wifi_connected, w.wifi_ssid, w.wifi_ip_address
 // w.wifi_rssi (dBm), w.internet_reachable
 // w.wifi_state, w.wifi_link_speed, w.wifi_freq_mhz, w.wifi_security
-// w.saved_networks
+// w.saved_networks, w.ble_connected
 ```
 
 `get_device_information()` is cached and non-blocking. Because association is
 asynchronous, the first snapshot after `wifi_add()` may still show
 `connecting`.
 
-`wifi_state` is one of `connected`, `connecting`, `auth_failed`, or
-`disconnected`. `connecting` appears only during a live attempt;
-`auth_failed` means the credentials were rejected. A dropped link reads
-`disconnected` while the device reconnects on its own.
+The snapshot is captured at `open()` and updated by the WiFi calls, so a handle
+held open across a network change continues to report the association captured
+earlier. Call `refresh_device_information()` to update it, then read the struct
+again:
+
+```cpp
+dev.refresh_device_information();
+WirelessConfiguration now = dev.get_device_information().wireless;
+```
+
+`wifi_state` is one of `connected`, `connecting`, `auth_failed`,
+`disconnected`, or `unknown`. `connecting` appears only during a live attempt,
+and `auth_failed` means the credentials were rejected. A dropped link reads
+`disconnected` while the device reconnects on its own. `unknown` is set
+host-side when a refresh could not complete, which is different from an empty
+value: empty means this firmware did not report the field at all.
+
+On firmware newer than v00.09.16, `connecting` and `auth_failed` describe a
+specific connection attempt and expire approximately 90 seconds after it. An
+expired result reverts to `disconnected` rather than persisting, so
+`auth_failed` always refers to a recent attempt. On v00.09.16 and earlier, an
+`auth_failed` result persists until the device reboots and may therefore name a
+network whose credentials have since been corrected.
+
+See [Core Types](/api/types#wirelessconfiguration) for the full block, including
+`ble_connected`, which reports whether a Bluetooth central currently holds the
+link on firmware newer than v00.09.16.
 
 ## From the CLI
 
@@ -54,8 +83,14 @@ ef-cli --ble AA:BB:CC:DD:EE:FF wifi add "My iPhone"   # prompts for the password
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi select MyNetwork
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi status
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi list
+ef-cli --ble AA:BB:CC:DD:EE:FF wifi scan
 ef-cli --ble AA:BB:CC:DD:EE:FF wifi remove MyNetwork
 ```
+
+Saved networks are held at equal priority, so the device connects automatically
+to the strongest access point in range. `wifi select` overrides that choice for a
+specific saved network. Re-adding the currently connected network has no effect
+and does not drop the active link.
 
 <Note>
 Operations that require connectivity (`upload_recording()`, update downloads)

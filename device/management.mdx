@@ -77,13 +77,13 @@ dev.set_ble_password("123456", "new-password");   // over BLE, or over locked US
 dev.set_ble_password("",       "new-password");   // over UNLOCKED USB only
 ```
 
-The empty-old-password form is physical access resetting a forgotten credential,
-and it works only while USB is unlocked. Once locked, that shortcut is gone and
-`factory_reset()` is the way back in.
+The form that omits the old password allows physical access to reset a forgotten
+credential, and it is available only while USB is unlocked. Once the device is
+locked, that form is unavailable and `factory_reset()` is the remaining route.
 
-The method keeps its `set_ble_password` name for source compatibility, but it has
-not been BLE-only since the USB lock shipped. Locking, at-rest encryption, key
-handling and recovery are covered in [Access Control and
+The method retains the name `set_ble_password` for source compatibility, but it
+has applied to both transports since the USB lock was introduced. Locking,
+at-rest encryption, key handling and recovery are covered in [Access Control and
 Encryption](/device/security).
 
 ## State and reboot
@@ -93,9 +93,9 @@ DEVICE_STATE s = dev.get_state();   // CLOSED / IDLE / STREAMING / UPDATING
 ERROR_CODE ec = dev.reboot();
 ```
 
-`get_state()` never blocks — it returns the last known state. Illegal calls
-for the current state return `INVALID_FUNCTION_CALL` without touching the
-device.
+`get_state()` never blocks; it returns the last known state. Calls that are
+invalid for the current state return `INVALID_FUNCTION_CALL` without contacting
+the device.
 
 Stop capture, recording, upload, health, or update work before rebooting. The
 SDK closes the handle when the reboot command is accepted, or when the link

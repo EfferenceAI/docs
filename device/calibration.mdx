@@ -1,0 +1,139 @@
+---
+title: "Camera and IMU Calibration"
+sidebarTitle: "Calibration"
+description: "Read, set, and reset the M1's camera intrinsics and IMU field calibration"
+---
+
+The M1 stores a camera calibration (Double Sphere intrinsics) and an IMU field
+calibration (bias, scale-misalignment, noise and temporal terms, and the
+camera-to-IMU transform). Both are provided with the device and persist across
+reboots, and both are published as recording metadata so that a downstream
+consumer can determine the values a session was captured under.
+
+All calibration writes require an `IDLE` device and take effect on the next
+capture session.
+
+## Read the current calibration
+
+```sh
+ef-cli calibration            # camera + IMU, as stored
+```
+
+From the library, the calibration is available in the cached device snapshot:
+
+```cpp
+DeviceInformation info = dev.get_device_information();
+CalibrationParameters cam = info.camera_configuration.calibration;
+SensorsConfiguration  imu = info.sensors_configuration;
+```
+
+## Camera intrinsics
+
+Intrinsics are produced by a checkerboard solve. The `calibrate_camera` tutorial
+displays the live feed with a detection overlay, captures 40 views as the board
+is moved through the frame, fits the model, and offers to write the result to the
+device. Move the board across the full frame and vary its tilt between captures;
+a set of near-identical frontal views produces a poor fit.
+
+```sh
+tutorials/calibrate_camera/cpp/build.sh
+tutorials/calibrate_camera/cpp/build/calibrate_camera --pattern 11x8 --square-size 30.0
+```
+
+To write a set of intrinsics obtained elsewhere:
+
+```sh
+ef-cli calibration --camera --set <fx> <fy> <cx> <cy> <xi> <alpha> <W> <H>
+```
+
+```cpp
+CalibrationParameters cal;      // values from the calibration solve; these vary per unit
+cal.fx = fx; cal.fy = fy;
+cal.cx = cx; cal.cy = cy;
+cal.xi = xi; cal.alpha = alpha;
+dev.set_camera_calibration(cal, 1920, 1200);
+```
+
+<Warning>
+`--set` replaces the stored intrinsics entirely, and the camera factory default
+is all zeros, meaning uncalibrated. `ef-cli calibration --camera --reset`
+restores that default rather than the calibration the device was shipped with.
+Record the current values before overwriting or resetting them. Each recording
+carries the intrinsics it was captured under, so an existing MCAP also serves as
+a record of them.
+</Warning>
+
+## On-device rectification
+
+By default the M1 delivers raw fisheye frames under the double-sphere model and
+publishes the intrinsics alongside them, leaving rectification to the host.
+Enabling `rectify` causes the device to undistort the frames it produces, so
+recordings contain rectilinear images instead. The change takes effect from the
+next capture session.
+
+```sh
+ef-cli calibration --camera --rectify on
+ef-cli calibration --camera --rectify on --fov-scale 0.8
+```
+
+The flag-only form reads the stored calibration, modifies only the named flags,
+and resends it, so the intrinsics do not need to be re-entered to change
+rectification.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `rectify` | `off` | undistort on the device rather than on the host |
+| `fov_scale` | `1.0` | rectified field of view: values below 1 widen it (more periphery, black corners), values above 1 zoom the center |
+
+`fov_scale` must be positive and applies only when `rectify` is enabled. The
+intrinsics remain in the recording metadata in either configuration, so a host
+consumer can perform rectification instead. `ef-cli config` reports the current
+`rectify` and `fov-scale` settings alongside the capture mode.
+
+## IMU calibration
+
+The `calibrate_imu` tutorial measures gyroscope zero-bias with the device held
+still, then fits the accelerometer ellipsoid as the device is rotated through all
+orientations. It writes the result to the device, replacing the stored
+calibration.
+
+```sh
+tutorials/calibrate_imu/cpp/build.sh
+tutorials/calibrate_imu/cpp/build/calibrate_imu
+```
+
+A run with insufficient orientation coverage, or one in which the device was not
+held still, is rejected with guidance rather than persisted. Repeat the procedure
+rather than retaining a poor calibration.
+
+Select how recordings carry the result:
+
+```sh
+ef-cli calibration --imu --mode raw          # default
+ef-cli calibration --imu --mode calibrated
+ef-cli calibration --imu --mode both
+```
+
+| Mode | Recording contents |
+|---|---|
+| `raw` | uncalibrated samples, with the parameters supplied as metadata |
+| `calibrated` | samples with `M*S*(x-b)` applied on the device |
+| `both` | the raw stream plus a pre-applied `*_calibrated` stream |
+
+Every recording carries the parameters as metadata regardless of the selected
+mode. In `calibrated` mode the embedded parameters are marked as already applied,
+which prevents a downstream consumer from applying them a second time.
+
+## Reset
+
+```sh
+ef-cli calibration --camera --reset
+ef-cli calibration --imu --reset
+```
+
+```cpp
+dev.reset_calibration(/*camera=*/true, /*imu=*/false);
+```
+
+Both restore the factory default for the selected sensor. For the camera that
+default is all zeros, so read the warning above before running it.

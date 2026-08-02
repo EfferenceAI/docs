@@ -45,8 +45,8 @@ The M1 separates control operations from high-bandwidth sensor data:
 | Control | Configuration, health, WiFi, recording management, and updates | USB or Bluetooth LE (BLE) |
 | Data | Live video and IMU | USB or WiFi/UDP |
 
-A BLE session can be control-only. Adding `InitParameters::udp_host` gives
-that session a WiFi/UDP data plane.
+A BLE session may be control-only. Setting `InitParameters::udp_host` adds a
+WiFi/UDP data plane to that session.
 
 ## Lifecycle
 
@@ -67,9 +67,9 @@ it explicitly with `disable_recording()`.
 | `STREAMING` | Live stream, device-local recording, upload, or another data-moving operation is active |
 | `UPDATING` | Firmware update in progress |
 
-Calls that are illegal in the current state return
-`ERROR_CODE::INVALID_FUNCTION_CALL`. Calls that touch the device return an
-`ERROR_CODE` and write results through output parameters.
+Calls that are invalid in the current state return
+`ERROR_CODE::INVALID_FUNCTION_CALL`. Calls that communicate with the device
+return an `ERROR_CODE` and write results through output parameters.
 
 Cached getters, including `get_device_information()` and
 `get_health_status()`, do not access the device or block.

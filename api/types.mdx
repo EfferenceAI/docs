@@ -5,8 +5,8 @@ description: "The data structures returned by the device"
 
 ## Mat
 
-An owned image buffer filled by `retrieve_image()`. The fields are private —
-the SDK is the sole producer — and consumers read through accessors:
+An owned image buffer filled by `retrieve_image()`. The fields are private
+(the SDK is the sole producer) and consumers read through accessors:
 
 | Accessor | Returns | Meaning |
 |---|---|---|
@@ -78,15 +78,55 @@ struct DeviceInformation {
 };
 ```
 
-- `CameraConfiguration::calibration` — double-sphere intrinsics
-  (`fx fy cx cy xi alpha`).
-- `SensorsConfiguration::camera_imu_transform` — 4×4 camera→IMU extrinsic.
-- `Capabilities::modes` — the selectable resolution/fps menu; values outside
-  it are rejected at `open()`.
-- `session_unlocked` is reported *alongside* `usb_locked`, which stays true. The
-  stored policy is still locked; gated verbs answer anyway until the device is
+- `CameraConfiguration::calibration` holds the double-sphere intrinsics
+  (`fx fy cx cy xi alpha`) plus `rectify` and `fov_scale`. See
+  [Calibration](/device/calibration).
+- `SensorsConfiguration::camera_imu_transform` is the 4×4 camera→IMU extrinsic.
+  The struct also round-trips the full IMU field calibration: `accel_bias`,
+  `gyro_bias`, `accel_scale_misalign` and `gyro_scale_misalign` (3×3 row-major,
+  identity when uncalibrated), and `time_offset_ns`.
+- `Capabilities::modes` is the selectable resolution/fps menu; values outside it
+  are rejected at `open()`. Each `SupportedMode` carries `resolution`, `fps`, and
+  `binning` (`"none"` or `"2x2"`, how the mode derives from the full sensor).
+- `hw_rev` is currently baked per firmware build, so every unit on a given image
+  returns the same value. Treat `"1.00"` as an unknown revision.
+- `session_unlocked` is reported *alongside* `usb_locked`, which remains true.
+  The stored policy is still locked, but gated verbs respond until the device is
   re-locked or loses power. See [Access Control and
   Encryption](/device/security).
+
+## WirelessConfiguration
+
+The `wireless` block of `DeviceInformation`. All fields come from the cached
+snapshot, so call `refresh_device_information()` before relying on them from a
+long-lived handle.
+
+| Field | Meaning |
+|---|---|
+| `wifi_mac_address` / `bt_mac_address` | radio addresses; empty when unprovisioned |
+| `ble_connected` | a BLE central currently holds the link; requires firmware newer than v00.09.16, and reads `false` on earlier firmware |
+| `wifi_connected` | associated with an access point |
+| `wifi_ssid` / `wifi_ip_address` / `wifi_rssi` | the current association, RSSI in dBm |
+| `internet_reachable` | the device reached the wider network, beyond the access point |
+| `wifi_state` | `connected`, `connecting`, `disconnected`, `auth_failed`, or `unknown` |
+| `wifi_link_speed` | negotiated PHY rate, Mbps |
+| `wifi_freq_mhz` | channel frequency, which distinguishes 2.4 from 5 GHz |
+| `wifi_security` | `WPA2`, `WPA3`, `WPA2/WPA3`, or `Open` |
+| `saved_networks` | every provisioned SSID |
+
+`unknown` is set host-side when a refresh could not complete, and is distinct
+from an empty `wifi_state`, which means the firmware did not report one. The
+association detail fields are best-effort for the same reason: empty or `0`
+indicates a value not reported by this firmware rather than a measured zero.
+
+<Note>
+`bt_paired` is deprecated and never populated. The device clears the Bluetooth
+bond on every disconnect, so no persistent paired state exists to report. Use
+`ble_connected` instead, which reports whether a central currently holds the
+link. Because a false value cannot be distinguished from a field the firmware
+does not report, treat `false` as "not reported" rather than as a positive
+indication that no central is connected.
+</Note>
 
 ## Status structs
 
@@ -157,9 +197,9 @@ One row of `get_device_list()`:
 | `input_type` | `USB` or `STREAM` (BLE) |
 | `device_id` | index for `InitParameters::device_id` |
 | `serial` | USB descriptor serial |
-| `ble_address` / `ble_name` | BLE identity (STREAM rows) |
+| `ble_address` / `ble_name` | BLE identity (STREAM rows); `ble_name` is the name the device advertises |
 
 ## Location
 
-`latitude`, `longitude`, `altitude`, `covariance_diag` — written into each
+`latitude`, `longitude`, `altitude` and `covariance_diag`, written into each
 recording's `LocationFix`.
