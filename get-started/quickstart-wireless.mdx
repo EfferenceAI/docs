@@ -31,7 +31,9 @@ reachable by the M1 over WiFi.
     ```sh
     ./sdk/linux/build/ef-cli list --scan-ble
     ```
-    Note the MAC address advertised by `Efference M1`.
+    Each device advertises as `M1-<serial>`, so match the serial printed by
+    `ef-cli list` and note that row's MAC. With several devices in range, the
+    BLE address is the one just above the WiFi MAC.
   </Step>
   <Step title="Control over BLE">
     ```sh

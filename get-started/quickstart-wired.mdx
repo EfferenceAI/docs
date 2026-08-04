@@ -1,18 +1,22 @@
 ---
 title: "Quickstart: Wired (USB)"
-description: "Plug in the M1, read its identity, run a health check, and see live video"
+description: "Plug in the M1, read its identity, update its firmware, run a health check, and see live video"
 ---
 
-Everything in this guide uses the USB cable only, with no WiFi or Bluetooth setup.
+Everything in this guide uses the USB cable only, with no WiFi or Bluetooth LE
+setup. Each step prints something you can check before moving on.
 
 <Steps>
   <Step title="Plug in and discover">
     ```sh
     ./sdk/linux/build/ef-cli list
     ```
-    Every attached M1 prints with its `device_id` and serial. If nothing shows
-    up, check the cable (data, not charge-only) and the udev rule
-    (see [Install Linux](/get-started/installation) or
+    Every attached M1 prints with its `device_id` and serial:
+    ```
+    USB  device_id=0  serial=d1b4061b06f15976  wifi_mac=60:48:9c:ba:32:f2  bt_mac=60:48:9c:ba:32:f3
+    ```
+    If nothing shows up, check the cable (data, not charge-only) and the udev
+    rule (see [Install Linux](/get-started/installation) or
     [Install Jetson](/get-started/install-jetson)).
   </Step>
   <Step title="Device information">
@@ -21,21 +25,60 @@ Everything in this guide uses the USB cable only, with no WiFi or Bluetooth setu
     ```
     Serial, firmware version, enabled capture modes, camera calibration, IMU
     noise densities, and WiFi/BT MAC addresses, all of it cached by the SDK
-    at `open()`.
+    at `open()`. Note the `firmware_version` line — the next step changes it.
+  </Step>
+  <Step title="Update the firmware">
+    A device fresh out of the box is usually behind. Update it before anything
+    else, so everything after this runs on current firmware.
+
+    ```sh
+    ./sdk/linux/build/ef-cli update --file ./update-00.09.17.eff
+    ```
+    The bundle is pushed over USB, so this path needs no network at all. Each
+    phase completes in order and the tool prints the running version at the end:
+    ```
+    [downloading] done
+    [installing ] done
+    [verifying  ] done
+    [applying   ] done
+    [rebooting  ] done
+    [reconnect  ] done
+    [updated    ] done  running firmware v00.09.17
+    ```
+    The device reboots partway through and the tool waits for it to come back.
+    Allow a couple of minutes end to end. Saved WiFi networks, recordings, and
+    the device serial all survive the update.
+
+    <Note>
+    With the device on a network you can skip the file: `ef-cli check-update`
+    asks the update service what is available, and `ef-cli update` fetches and
+    applies it. See [Firmware updates](/device/update).
+    </Note>
   </Step>
   <Step title="Health check">
     ```sh
     ./sdk/linux/build/ef-cli health          # quick sweep
-    ./sdk/linux/build/ef-cli health --deep   # + ~2 min stress tier
+    ./sdk/linux/build/ef-cli health --deep   # adds a stress tier
     ```
-    Each probe prints `PASS` / `FAIL` with detail.
+    Each probe prints `PASS` / `FAIL` with detail, ending in an `overall=`
+    line. The quick sweep covers 22 checks; `--deep` adds nine more —
+    eMMC throughput, a multi-core coherency burn, thermals under load, camera
+    frame statistics, and IMU streaming.
+
+    Two lines surprise people, and both are correct:
+
+    - `usb: … speed=high-speed` is expected. The control plane and this
+      quickstart work at high speed.
+    - `cpu: … load1=` can read high on an otherwise idle device. The media
+      threads sit in uninterruptible sleep, which counts toward load average
+      without consuming CPU.
   </Step>
   <Step title="Live video">
     ```sh
     ./sdk/linux/build/efference-viewer
     ```
-    A window opens with the decoded stream and a status bar with live IMU
-    values. `Q` or `Esc` quits.
+    A window opens with the decoded stream and a status bar showing the frame
+    count and live IMU values. `Q` or `Esc` quits.
   </Step>
 </Steps>
 
@@ -57,7 +100,7 @@ int main() {
 
     DeviceInformation info = dev.get_device_information();
     std::printf("serial:   %s\n", info.serial.c_str());
-    std::printf("firmware: %u\n", info.firmware_version);
+    std::printf("firmware: %s\n", info.firmware_version_str.c_str());
 
     HealthStatus health;
     if (dev.health_check(health) == ERROR_CODE::SUCCESS)
