@@ -107,6 +107,30 @@ ef-cli key show                      # print it (stdout, so it can be piped)
 ef-cli key show --out device1.key    # or write it to a 0600 file, never echoed
 ```
 
+To use a key you already hold, supply it instead of having the device generate
+one. The key is exactly 32 bytes, given as a file, on stdin, or as 64 hex
+characters:
+
+```sh
+ef-cli key set --in device1.key      # from a file
+cat device1.key | ef-cli key set -   # from stdin
+ef-cli key set <64-hex>              # inline
+```
+
+`key set` is refused while a key already exists, and while the device is
+recording. The reply names the key by ID and never returns the bytes.
+
+<Warning>
+**Replacing a key is three steps, not one.** `encryption delete` turns
+encryption off, and `key set` does not turn it back on:
+
+```sh
+ef-cli encryption delete --confirm <key_id>
+ef-cli key set --in newkey.key
+ef-cli encryption on                 # required, or recordings continue in the clear
+```
+</Warning>
+
 `--out` refuses to overwrite an existing file rather than truncating it, because
 the file it would replace may be the only copy of another device's key.
 

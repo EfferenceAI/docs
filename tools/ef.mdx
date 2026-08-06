@@ -69,7 +69,8 @@ ef-cli record stop
 ef-cli record status [name]
 ef-cli record list            # each entry marked [encrypted] or [unencrypted]
 ef-cli record delete <name>
-ef-cli download <name> [dest] # pull over USB/BLE (default <name>.mcap, bytes as stored)
+ef-cli download <name> [dest] # pull over USB/BLE (bytes as stored). dest may be a
+                             # file or a directory; a directory receives <name>.mcap
 ef-cli storage                # free/total on the recording store
 ```
 
@@ -129,6 +130,7 @@ ef-cli encryption create               # generate the device's key; SHOWN ONCE, 
 ef-cli encryption delete               # show the key and how to destroy it; destroys nothing
 ef-cli encryption delete --confirm <key_id> [--yes]
 ef-cli key show [--out <file>]         # print the key, or write it to a new 0600 file
+ef-cli key set --in <file> | - | <64-hex>   # install a key you supply (32 bytes)
 ef-cli factory-reset [--yes]           # restore defaults; DESTROYS the encryption key
 ```
 
