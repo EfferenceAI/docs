@@ -77,6 +77,10 @@ ef-cli storage                # free/total on the recording store
 Re-running an interrupted `download` resumes it. Until the command succeeds the
 file it leaves is a partial, not a readable `.mcap`.
 
+On a terminal, a long `download` reports progress on a line that redraws in place
+and is erased when the transfer ends. Redirected output carries only the final
+`saved <path>` line.
+
 `download` never decrypts. An encrypted recording is transferred as ciphertext,
 so specify a destination and process it with `ef-decrypt`. See
 [Access Control and Encryption](/device/security#reading-an-encrypted-recording).

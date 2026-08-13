@@ -129,8 +129,10 @@ ERROR_CODE get_recording_status(RecordingStatus& out, const std::string& name = 
 ERROR_CODE list_recordings(std::vector<RecordingStatus>& out);
 ERROR_CODE get_storage(uint64_t& free_bytes, uint64_t& total_bytes);
 ERROR_CODE delete_recording(const std::string& name);
-ERROR_CODE download_recording(const std::string& name, const std::string& dest_path,
-                              std::string* saved_path = nullptr);
+ERROR_CODE download_recording(
+    const std::string& name, const std::string& dest_path,
+    std::string* saved_path = nullptr,
+    const std::function<void(const DownloadProgress&)>& on_progress = {});
 ERROR_CODE upload_recording(const std::string& name, const std::string& url,
                             bool resumable = false);
 ERROR_CODE stop_upload(const std::string& name);
@@ -144,6 +146,25 @@ even when the call then fails, so it is the path to look at rather than proof on
 was written. Re-running an interrupted pull resumes it, after checking the partial
 belongs to that recording. Until a run returns `SUCCESS` the file is a partial,
 not a readable `.mcap`.
+
+Supply `on_progress` to follow a long pull:
+
+```cpp
+struct DownloadProgress {
+    uint64_t received     = 0;  // bytes on disk now, resumed_from included
+    uint64_t total        = 0;  // recording size, 0 when the device reports none
+    uint64_t resumed_from = 0;  // bytes a resume started with; 0 on a fresh pull
+};
+```
+
+It reports the pull once the destination is open: once before any bytes are
+written, then as they arrive, on the calling thread. A call that fails before that
+never invokes it, and nothing is reported after a failure, so treat the returned
+`ERROR_CODE` as the outcome rather than the last progress you saw. Keep it cheap,
+do not throw, and do not call back into the `Device` from it.
+
+`resumed_from` is what tells you which bytes were already on disk, so a resumed
+pull can report an honest rate.
 
 ## Updates
 
