@@ -16,34 +16,18 @@ rollback. See [Firmware Updates](/device/update) for how to check and apply one.
 
   **Recording capacity**
 
-  - The disk-full reserve is now an absolute 512 MiB instead of 10% of the
-    recording store. The reserve exists to hold one staged update plus log
-    headroom, and that requirement does not grow with the size of the medium.
-    On a 12 GB store this returns roughly 700 MB to recordings — about 29 extra
-    minutes at 840 Hz IMU, or 43 minutes at 120 Hz.
-  - Devices already in the field are migrated automatically on first boot after
-    the update. A device that had never been given an explicit reserve adopts
-    the new value; an operator-chosen reserve is left untouched.
+  - Set the disk-full reserve to 512 MiB, enough to hold one staged update
+    plus log headroom.
 
   **Mass storage**
 
   - The M1 can present its recordings as a read-only drive over USB, so a
     laptop can browse and copy them without any Efference tooling. Deleting a
     file from the drive deletes the recording on the device.
-  - The volume follows the USB control-plane lock: a locked device does not
-    expose it.
 
   **Reliability**
 
-  - Fixed a use-after-free that could crash the recorder when a recording failed
-    to finalize — reachable whenever the storage write failed, including on a
-    full disk.
-  - A Wi-Fi lease that nothing renewed could be lost silently; leases are now
-    renewed.
-  - Bluetooth LE no longer evicts the peer that is currently connected when the
-    bond list is full.
-  - Session metadata and its directory are now flushed to disk on save, so a
-    power cut cannot leave a recording described by a partially written file.
+  - Improved reliability of Bluetooth and WiFi
 
 </Update>
 

@@ -23,9 +23,7 @@ See [Installation](/get-started/installation) to get the current version.
 
   **Location**
 
-  - A device now has no location until one is set, rather than reporting a
-    default. The opt-out holds on the recording path too.
-  - `location set` is parsed strictly, and the CLI says where a location lands.
+  - Removed the hardcoded default location.
 
   **Wi-Fi**
 
@@ -37,18 +35,8 @@ See [Installation](/get-started/installation) to get the current version.
 
   - Uploads report why they failed and show live progress. A refused upload URL
     is no longer reported as a device password error.
-  - Fixed four stream-reassembly defects, including a holed frame being reported
-    as complete.
   - Frame accounting compares what the device sent against what the host
     received, behind `--stats`.
-
-  **Recordings**
-
-  - An interrupted recording is no longer always described as a power loss.
-
-  **Documentation**
-
-  - The CLI reference is split into sections rather than one long page.
 
 </Update>
 
