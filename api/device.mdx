@@ -129,13 +129,21 @@ ERROR_CODE get_recording_status(RecordingStatus& out, const std::string& name = 
 ERROR_CODE list_recordings(std::vector<RecordingStatus>& out);
 ERROR_CODE get_storage(uint64_t& free_bytes, uint64_t& total_bytes);
 ERROR_CODE delete_recording(const std::string& name);
-ERROR_CODE download_recording(const std::string& name, const std::string& dest_path);
-ERROR_CODE upload_recording(const std::string& name, const std::string& url);
+ERROR_CODE download_recording(const std::string& name, const std::string& dest_path,
+                              std::string* saved_path = nullptr);
+ERROR_CODE upload_recording(const std::string& name, const std::string& url,
+                            bool resumable = false);
 ERROR_CODE stop_upload(const std::string& name);
 ```
 `HOST_FILE` writes the live stream to a local MCAP file. `DEVICE_LOCAL` records
 on the M1 and continues across `close()` or a host disconnect. Downloads use the
 USB or Bluetooth LE (BLE) control link; uploads use WiFi.
+
+`download_recording` reports the file it targets through `saved_path`, filled in
+even when the call then fails, so it is the path to look at rather than proof one
+was written. Re-running an interrupted pull resumes it, after checking the partial
+belongs to that recording. Until a run returns `SUCCESS` the file is a partial,
+not a readable `.mcap`.
 
 ## Updates
 

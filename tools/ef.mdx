@@ -74,6 +74,9 @@ ef-cli download <name> [dest] # pull over USB/BLE (bytes as stored). dest may be
 ef-cli storage                # free/total on the recording store
 ```
 
+Re-running an interrupted `download` resumes it. Until the command succeeds the
+file it leaves is a partial, not a readable `.mcap`.
+
 `download` never decrypts. An encrypted recording is transferred as ciphertext,
 so specify a destination and process it with `ef-decrypt`. See
 [Access Control and Encryption](/device/security#reading-an-encrypted-recording).
@@ -82,6 +85,7 @@ so specify a destination and process it with `ef-decrypt`. See
 
 ```sh
 ef-cli upload <name> <presigned-url>   # device uploads over WiFi
+ef-cli upload <name> <url> --resumable # <url> is a resumable-session URI
 ef-cli stop-upload <name>
 ```
 
