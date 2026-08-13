@@ -25,9 +25,22 @@ rollback. See [Firmware Updates](/device/update) for how to check and apply one.
     laptop can browse and copy them without any Efference tooling. Deleting a
     file from the drive deletes the recording on the device.
 
+  **Bluetooth**
+
+  - A phone that has paired once stays paired across disconnect and reboot.
+  - Replies no longer go missing after a phone backgrounds, force-quits, or
+    drops out of range.
+  - `forget-ble-bonds` clears every pairing on the device. Each phone must also
+    forget the device on its own side.
+
+  **Uploads**
+
+  - Uploads accept a resumable-session URI. An interrupted transfer continues
+    from the byte the server holds instead of restarting, in 32 MiB chunks.
+
   **Reliability**
 
-  - Improved reliability of Bluetooth and WiFi
+  - Improved WiFi reliability.
 
 </Update>
 
