@@ -12,15 +12,43 @@ See [Installation](/get-started/installation) to get the current version.
   firmware change, that is called out in the entry.
 </Note>
 
-<Update label="Unreleased" description="Next">
+<Update label="2026-08-12" description="v00.09.19">
 
-  - The SDK reads compressed recordings. The device can write MCAP with
-    compressed chunks; the reader now decompresses them, so recordings from a
-    device using compression open normally in replay and the viewer. This must
-    ship at or before the firmware that enables compression — an older SDK
-    cannot read those files and reports no stream.
-  - `libzstd` is now a build dependency of the core library. Installing
-    prerequisites via the documented setup script covers it.
+  Pairs with M1 firmware v00.09.19.
+
+  **Recordings drive**
+
+  - Device information now reports the recordings drive, so a caller can tell
+    whether the device is presenting its recordings as a USB volume.
+
+  **Location**
+
+  - A device now has no location until one is set, rather than reporting a
+    default. The opt-out holds on the recording path too.
+  - `location set` is parsed strictly, and the CLI says where a location lands.
+
+  **Wi-Fi**
+
+  - Link usability is reported separately from association, so a network that
+    associated but does not actually carry traffic is no longer reported as
+    working.
+
+  **Uploads and streaming**
+
+  - Uploads report why they failed and show live progress. A refused upload URL
+    is no longer reported as a device password error.
+  - Fixed four stream-reassembly defects, including a holed frame being reported
+    as complete.
+  - Frame accounting compares what the device sent against what the host
+    received, behind `--stats`.
+
+  **Recordings**
+
+  - An interrupted recording is no longer always described as a power loss.
+
+  **Documentation**
+
+  - The CLI reference is split into sections rather than one long page.
 
 </Update>
 
