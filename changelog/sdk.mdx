@@ -1,0 +1,28 @@
+---
+title: "SDK Changelog"
+description: "Release history for the Efference host SDK and command-line tools"
+---
+
+The host SDK and `ef-cli` ship alongside device firmware. See
+[Installation](/get-started/installation) to get the current version.
+
+<Note>
+  The SDK does not yet publish tagged releases, so this page has no history to
+  draw on. Entries below start from the first version that was versioned
+  independently of firmware. Until then, SDK changes were described in the
+  [firmware changelog](/changelog/firmware) for the release they shipped with.
+</Note>
+
+<Update label="Unreleased" description="Next">
+
+  **DRAFT — pending review. Do not publish as-is.**
+
+  - The SDK reads compressed recordings. The device can write MCAP with
+    compressed chunks; the reader now decompresses them, so recordings from a
+    device using compression open normally in replay and the viewer. This must
+    ship at or before the firmware that enables compression — an older SDK
+    cannot read those files and reports no stream.
+  - `libzstd` is now a build dependency of the core library. Installing
+    prerequisites via the documented setup script covers it.
+
+</Update>

@@ -110,6 +110,18 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Changelog",
+        "groups": [
+          {
+            "group": "Changelog",
+            "pages": [
+              "changelog/firmware",
+              "changelog/sdk"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -123,4 +135,3 @@
     "family": "Inter"
   }
 }
-

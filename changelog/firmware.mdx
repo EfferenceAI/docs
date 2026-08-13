@@ -1,0 +1,154 @@
+---
+title: "Firmware Changelog"
+description: "Release history for M1 device firmware"
+---
+
+Firmware ships as a signed `.eff` bundle applied over A/B slots with automatic
+rollback. See [Firmware Updates](/device/update) for how to check and apply one.
+
+<Note>
+  Version numbers carry two forms: a display string (`00.09.18`) and a monotonic
+  integer (`VERSION_INT=918`) used for update comparison and anti-rollback. The
+  integer must always increase.
+</Note>
+
+<Update label="Unreleased" description="v00.09.19">
+
+  **Recording capacity**
+
+  - The disk-full reserve is now an absolute 512 MiB instead of 10% of the
+    recording store. The reserve exists to hold one staged update plus log
+    headroom, and that requirement does not grow with the size of the medium.
+    On a 12 GB store this returns roughly 700 MB to recordings — about 29 extra
+    minutes at 840 Hz IMU, or 43 minutes at 120 Hz.
+  - Devices already in the field are migrated automatically on first boot after
+    the update. A device that had never been given an explicit reserve adopts
+    the new value; an operator-chosen reserve is left untouched.
+
+  **Mass storage**
+
+  - The M1 can present its recordings as a read-only drive over USB, so a
+    laptop can browse and copy them without any Efference tooling. Deleting a
+    file from the drive deletes the recording on the device.
+  - The volume follows the USB control-plane lock: a locked device does not
+    expose it.
+
+  **Reliability**
+
+  - Fixed a use-after-free that could crash the recorder when a recording failed
+    to finalize — reachable whenever the storage write failed, including on a
+    full disk.
+  - A Wi-Fi lease that nothing renewed could be lost silently; leases are now
+    renewed.
+  - Bluetooth LE no longer evicts the peer that is currently connected when the
+    bond list is full.
+  - Session metadata and its directory are now flushed to disk on save, so a
+    power cut cannot leave a recording described by a partially written file.
+
+</Update>
+
+<Update label="2026-08-06" description="v00.09.18">
+
+  - Added admin password support.
+  - You can now supply your own AES-256 key.
+  - Reworked the MCAP to MP4 tool.
+
+</Update>
+
+<Update label="2026-08-02" description="v00.09.17">
+
+  <Note>
+    This release shipped without notes. The summary below was reconstructed from
+    the commit history and has not been reviewed against the original intent.
+  </Note>
+
+  - Per-unit hostname (`M1-<serial>`) is now set before the Bluetooth daemon
+    starts, so devices are distinguishable over BLE.
+  - The SDK endpoint reports one serial consistently across both the USB
+    descriptor and the control plane.
+  - Boot-resilience work: the boot gate now quiesces filesystems before a reset
+    and records the first bad boot, so field data samples early boots rather
+    than only late ones.
+
+</Update>
+
+<Update label="2026-07-29" description="v00.09.16">
+
+  - Wi-Fi status no longer reports an eternal "connecting" after a link drop.
+  - Bluetooth LE tears down live streams when the controlling app dies.
+  - `/tmp/resolv.conf` is exempt from temporary-file aging, fixing DNS loss
+    after the boot-time clock jump.
+
+</Update>
+
+<Update label="2026-07-27" description="v00.09.15">
+
+  First image carrying the at-rest encryption and USB access-control work.
+  Everything before this ran from `/userdata` candidates deployed over adb; none
+  of it had been in a flashed root filesystem until now.
+
+  **Encryption**
+
+  - Device-generated encryption key lifecycle. `CreateEncryptionKey` generates
+    and returns the key once; `DeleteEncryptionKey` requires the key's id and
+    reports what it destroyed.
+  - A factory reset now destroys the key, closing the path where a reset dropped
+    the password to default and the key could then be read out.
+  - Container headers carry the algorithm id and key id.
+
+  **Access control**
+
+  - USB control-plane lock, gated by the same password as Bluetooth LE.
+
+</Update>
+
+<Update label="2026-07-25" description="v00.09.14">
+
+  **Updates no longer need a URL**
+
+  - `ef-cli update` asks the update-check service what this device should run and
+    passes the result with the download request.
+  - Checking for an update no longer downloads the bundle to find out — one
+    request instead of a ~390 MB transfer.
+  - The device holds no update server of its own. A one-off URL can no longer
+    become a device's permanent update source, which previously left devices
+    pointed at a stale directory after a wired push.
+  - The URL arrives at a single-use path, validated against a scheme allowlist,
+    read once and removed.
+
+</Update>
+
+<Update label="2026-07-24" description="v00.09.10">
+
+  - Wi-Fi and boot fixes.
+  - The build now includes the Bluetooth LE endpoint.
+
+</Update>
+
+<Update label="2026-07-23" description="v00.09.09">
+
+  **Fault detection and recovery**
+
+  - A hung or stalled capture mid-recording was previously undetectable: the
+    device reported healthy while writing nothing. A liveness classifier now
+    latches a SAFE state with a reason.
+  - Anomalies are classified: write errors and crashes latch; disk-full and
+    capture-stopped return to idle with the cause surfaced.
+  - Replaced the event-counting fault budget with a duration test.
+  - Fixed the boot gate re-latching a device whose capture was merely slow to
+    start. A latched unit now recovers on power cycle instead of staying stuck.
+  - Added per-boot and per-lifetime event tallies for fleet triage.
+
+  **Updates**
+
+  - Real download percentage, serial trace, and coherent status across the
+    update.
+
+</Update>
+
+<Update label="2026-07-22" description="v00.09.03">
+
+  First published OTA bundle for v0.3+ boards. Signed with the deployed update
+  key and encrypted with the deployed content key.
+
+</Update>
