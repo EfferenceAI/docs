@@ -3,19 +3,16 @@ title: "SDK Changelog"
 description: "Release history for the Efference host SDK and command-line tools"
 ---
 
-The host SDK and `ef-cli` ship alongside device firmware. See
-[Installation](/get-started/installation) to get the current version.
+The host SDK and `ef-cli` are published at
+[github.com/EfferenceAI/efference](https://github.com/EfferenceAI/efference).
+See [Installation](/get-started/installation) to get the current version.
 
 <Note>
-  The SDK does not yet publish tagged releases, so this page has no history to
-  draw on. Entries below start from the first version that was versioned
-  independently of firmware. Until then, SDK changes were described in the
-  [firmware changelog](/changelog/firmware) for the release they shipped with.
+  SDK versions track the firmware they pair with. Where an SDK release carries no
+  firmware change, that is called out in the entry.
 </Note>
 
 <Update label="Unreleased" description="Next">
-
-  **DRAFT — pending review. Do not publish as-is.**
 
   - The SDK reads compressed recordings. The device can write MCAP with
     compressed chunks; the reader now decompresses them, so recordings from a
@@ -24,5 +21,72 @@ The host SDK and `ef-cli` ship alongside device firmware. See
     cannot read those files and reports no stream.
   - `libzstd` is now a build dependency of the core library. Installing
     prerequisites via the documented setup script covers it.
+
+</Update>
+
+<Update label="2026-08-06" description="v00.09.18">
+
+  Pairs with M1 firmware v00.09.18.
+
+  - Wi-Fi band selection.
+  - Scoped admin grants.
+  - Reworked the MCAP to MP4 tool.
+
+</Update>
+
+<Update label="2026-08-02" description="v00.09.17">
+
+  Pairs with M1 firmware v00.09.17.
+
+</Update>
+
+<Update label="2026-07-29" description="v00.09.16">
+
+  Pairs with M1 firmware v00.09.16.
+
+  - `wifi add` quoting guard, so an SSID containing spaces is handled correctly.
+  - Hidden password prompt when the pre-shared key is omitted.
+
+</Update>
+
+<Update label="2026-07-27" description="SDK tooling">
+
+  - Added `ef-decrypt` for reading encrypted recordings.
+
+  No firmware change; devices stay on 00.09.15.
+
+</Update>
+
+<Update label="2026-07-27" description="v00.09.15">
+
+  Pairs with M1 firmware v00.09.15.
+
+  - Video encryption support.
+  - Device locking.
+  - Bug fixes.
+
+</Update>
+
+<Update label="2026-07-25" description="v0.9.14">
+
+  - Bug fixes for Bluetooth LE and over-the-air updates.
+
+</Update>
+
+<Update label="2026-07-24" description="v0.9.10">
+
+  Released alongside M1 firmware v00.09.10.
+
+</Update>
+
+<Update label="2026-07-21" description="v0.9.2">
+
+  - Internal source reorganization and comment cleanup.
+
+</Update>
+
+<Update label="2026-07-21" description="v0.9.1">
+
+  First public release of the Efference SDK.
 
 </Update>
