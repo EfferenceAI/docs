@@ -12,6 +12,19 @@ rollback. See [Firmware Updates](/device/update) for how to check and apply one.
   integer must always increase.
 </Note>
 
+<Update label="2026-08-13" description="v00.09.20">
+
+  **Bluetooth**
+
+  - A command that arrives in fragments and then stops no longer holds the
+    link. The incomplete command is discarded on its own, and the commands
+    queued behind it are still answered.
+  - Commands sent back to back at ordinary connection intervals are handled
+    without the link stalling, so an app that polls the device stays
+    responsive.
+
+</Update>
+
 <Update label="2026-08-12" description="v00.09.19">
 
   **Recording capacity**

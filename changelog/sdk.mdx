@@ -12,6 +12,32 @@ See [Installation](/get-started/installation) to get the current version.
   firmware change, that is called out in the entry.
 </Note>
 
+<Update label="2026-08-13" description="v00.09.20">
+
+  Pairs with M1 firmware v00.09.20.
+
+  **Downloads**
+
+  - A long pull reports progress on a line that redraws in place, showing the
+    percentage, the bytes transferred and the rate the link is achieving.
+
+    ```
+    [download   ]  42%  69.3/164.6 MB  16.0 MB/s
+    ```
+
+    The line is erased when the transfer ends, leaving `saved <path>` as the
+    result. Nothing is printed when output is redirected, so a script still
+    reads exactly one line.
+  - Re-running the same command resumes an interrupted pull, and the progress
+    it reports opens at the fraction already on disk. The file an unfinished
+    pull leaves behind is a partial rather than a readable `.mcap`, so finish
+    the pull before handing it to a reader.
+  - A recording name is a session name rather than a path. A name carrying a
+    path separator is refused with `INVALID_FUNCTION_CALL`, whether or not you
+    give a destination.
+
+</Update>
+
 <Update label="2026-08-12" description="v00.09.19">
 
   Pairs with M1 firmware v00.09.19.
