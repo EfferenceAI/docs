@@ -162,7 +162,7 @@ struct EncryptionKey {
 
 struct UpdateAvailability {
     bool         available;          // false when current, or nothing published
-    unsigned int target_version;     // version_int of the bundle at `url`
+    unsigned int target_version;     // version of the bundle at `url`
     std::string  target_version_str; // display only
     std::string  url;                // empty unless available
     std::string  notes;              // optional one-line service message
