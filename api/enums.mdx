@@ -98,7 +98,7 @@ Returned by every wire-touching call. Numeric blocks group the semantics:
 | `UPLOAD_STATE` | `RUNNING`, `OFF` | failures surface as `ERROR_CODE` |
 | `STOP_REASON` | `UNSPECIFIED`, `USER`, `DISK_FULL`, `WRITE_ERROR`, `INTERRUPTED` | why a device-local session ended; `UNSPECIFIED` while recording or from firmware predating the field (< v00.09.16) |
 | `UPDATE_STATE` | `DOWNLOADING`, `VERIFYING`, `READY_TO_APPLY`, `APPLYING`, `CHECKING`, `UPLOADING`, `REBOOTING`, `RECONNECTING` | firmware update phases; 0–3 are the apply sequence, `CHECKING` reads the manifest, `UPLOADING` pushes a local `.eff`, `REBOOTING`/`RECONNECTING` cross the reboot |
-| `AE_SETTLE` | `UNKNOWN`, `ON`, `OFF` | recording head delay in force; `UNKNOWN` is not `OFF` -- it means the device reported no policy, either firmware with no head delay at all (<= v00.09.20) or a device that could not read its own state just then |
+| `AE_SETTLE` | `UNKNOWN`, `ON`, `OFF` | recording head delay in force; `UNKNOWN` means the device reported no policy, either firmware with no head delay at all (<= v00.09.20) or one that could not read its own state just then |
 | `ENCRYPTION_ALGORITHM` | `UNSPECIFIED`, `AES_256_GCM` | at-rest recording cipher; `UNSPECIFIED` means "device default" on a request, and AES-256-GCM in a file written before the field existed |
 | `MODEL` | `M1` | |
 | `SENSOR_TYPE` | `ACCELEROMETER`, `GYROSCOPE` | |

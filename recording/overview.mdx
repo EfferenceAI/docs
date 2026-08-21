@@ -108,10 +108,10 @@ streaming and WiFi streaming -- are never held by it either way. The SDK
 equivalent is [`Device::set_ae_settle()`](/api/device).
 
 `ef-cli info --json` reports it as `ae_settle`, with four values. `on` and `off`
-are the policy in force. `none` means the firmware has no head delay at all --
-it predates the feature, and the verb returns `UNSUPPORTED`. `unknown` means the
-firmware has a policy but did not report one just then; re-read it rather than
-treating it as `off`.
+are the policy in force. `none` means the firmware has no head delay at all, so it
+records from the first frame and the verb returns `UNSUPPORTED`. `unknown` means
+the firmware has a policy but did not report it just then; read it again rather
+than taking it as `off`.
 
 ## Stop reasons and power loss
 
