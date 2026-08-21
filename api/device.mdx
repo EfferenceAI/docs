@@ -180,8 +180,13 @@ ERROR_CODE set_configuration(int width, int height, int fps,
                              COMPRESSION_MODE codec);   // persisted; IDLE only
 ERROR_CODE set_configuration(int width, int height, int fps,
                              COMPRESSION_MODE codec, IMU_DATA imu_data);
+ERROR_CODE set_ae_settle(bool enabled);   // recording head delay; persisted
 ERROR_CODE reboot();
 ```
+`set_ae_settle()` turns the recording head delay on or off, device-wide and
+across reboots. See [Recording head delay](/recording/overview#recording-head-delay)
+for what it costs and when to turn it off. Returns `UNSUPPORTED` on firmware that
+has no head delay; read the value back from `get_device_information().ae_settle`.
 The `IMU_DATA` overload also selects on-device IMU handling for the session:
 `RAW` records uncalibrated samples (the default), `CALIBRATED` applies the stored
 `M*S*(x-b)` per sample, and `BOTH` emits both.
