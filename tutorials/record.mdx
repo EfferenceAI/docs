@@ -29,8 +29,8 @@ before downloading the MCAP.
         }
 
         // Long enough to clear the recording head delay: on by default, it holds
-        // the opening frames until auto-exposure converges, which takes several
-        // seconds from cold. A shorter session records nothing at all.
+        // the opening frames until auto-exposure converges. A shorter session
+        // records nothing at all, and how long it takes depends on the scene.
         // See /recording/overview#recording-head-delay.
         std::this_thread::sleep_for(std::chrono::seconds(15));
         device.disable_recording();
