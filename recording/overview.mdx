@@ -89,15 +89,6 @@ cost is that the file starts later, and **a session shorter than convergence
 records nothing at all** -- neither video nor IMU, because the IMU pre-roll is
 discarded along with the video it is aligned to.
 
-How long convergence takes depends on the scene and on the camera tuning, so
-measure your own if the margin matters. The device gives up after **7 s by
-default** and records anyway; that default is per-device, so treat it as a
-setting rather than a hard ceiling. A session comfortably longer than the cap
-cannot be swallowed whole, whatever convergence turns out to be.
-
-If you are recording short clips, either record for longer than convergence or
-turn the delay off and accept the exposure ramp in the first frames:
-
 ```sh
 ef-cli config ae-settle off
 ```
