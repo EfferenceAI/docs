@@ -12,6 +12,51 @@ See [Installation](/get-started/installation) to get the current version.
   firmware change, that is called out in the entry.
 </Note>
 
+<Update label="2026-08-26" description="v00.09.21">
+
+  Pairs with M1 firmware v00.09.21.
+
+  **Segmented recordings**
+
+  - `record start --segment-duration-s <1..86400>` sets how long each segment
+    of a session runs. This option and its wire field were previously spelled
+    `--chunk-seconds` and `chunk_seconds`; the old spelling is gone.
+  - Downloading a segmented recording pulls the whole session. It arrives as a
+    directory of `000000.mcap`, `000001.mcap` and so on, because the segments
+    are separate files.
+  - A segment can be uploaded as soon as it is sealed, without waiting for the
+    session to end.
+
+  **Recording head delay**
+
+  - `ef-cli config ae-settle <on|off>` controls whether a recording waits for
+    auto-exposure to converge before keeping the first frame. Device
+    information reports the policy in force, and reports it as absent — rather
+    than as a default — on firmware that predates the feature.
+
+  **Updates**
+
+  - `check-update` shows the release notes published with an update, broken out
+    into security, added and changed, so you can read what an update contains
+    before applying it.
+
+  **MCAP**
+
+  - The reader handles zstd-compressed Chunk records.
+
+  **Fixes**
+
+  - A chunked download wrote every segment to the same truncated path. Each
+    segment now lands at its own file.
+  - A stop the device did not confirm is no longer reported as a failed stop.
+
+  **Requirements**
+
+  - The compiler and optional-dependency requirements are stated in the SDK
+    README, and the Clang version floor has been dropped.
+
+</Update>
+
 <Update label="2026-08-13" description="v00.09.20">
 
   Pairs with M1 firmware v00.09.20.
