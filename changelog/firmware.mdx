@@ -10,45 +10,23 @@ rollback. See [Firmware Updates](/device/update) for how to check and apply one.
 
   **Recording**
 
-  - A recording can be split into segments, each a complete, independently
-    playable `.mcap`. Segmenting is a device setting and is **off by default**,
-    so a session still writes one file per recording unless you turn it on.
-    Set the length per session with `segment_duration_s`; `0` means the device
-    default rather than "no rotation".
-  - Every recording now carries an index, segmented or not, so a reader can
-    seek instead of scanning the whole file.
   - The start of a recording waits for auto-exposure to converge before the
     first frame is kept, so a session no longer opens on visibly over- or
     under-exposed frames. This is on by default; turn it off with
     `ef-cli config ae-settle off`.
   - A session that ends is complete and readable on disk, and stays that way
     even if capture goes down immediately afterwards.
-  - A video-encoder fault no longer ends the recording session.
-
-  **Uploads**
-
-  - A sealed segment uploads while the next one is still recording, so a long
-    session no longer waits until it ends to start transferring.
 
   **Camera**
 
-  - Frames are driven by a hardware trigger on every session, giving an exact
-    30 fps rather than a free-running approximation.
   - New image tuning, with digital gain capped at 4x to hold noise down in low
     light.
-  - Raised the USB video bandwidth ceiling, so scenes that previously exceeded
-    it hold 30 fps.
 
   **Startup**
 
   - The device is usable sooner after power-on: it enumerates over USB and
-    starts advertising over Bluetooth earlier in boot, and setup work that
-    belongs to the first boot no longer repeats on every later one.
+    starts advertising over Bluetooth earlier in boot.
 
-  **Device information**
-
-  - `GetDeviceInformation` returns the device's current state alongside the
-    identity fields, so a caller needs one round trip instead of two.
 
 </Update>
 
