@@ -12,6 +12,34 @@ See [Installation](/get-started/installation) to get the current version.
   firmware change, that is called out in the entry.
 </Note>
 
+<Update label="2026-08-26" description="v00.09.21">
+
+  Pairs with M1 firmware v00.09.21.
+
+  **Recording head delay**
+
+  - `ef-cli config ae-settle <on|off>` controls whether a recording waits for
+    auto-exposure to converge before keeping the first frame. Device
+    information reports the policy in force, and reports it as absent — rather
+    than as a default — on firmware that predates the feature.
+
+  **Updates**
+
+  - `check-update` shows the release notes published with an update, broken out
+    into security, added and changed, so you can read what an update contains
+    before applying it.
+
+  **MCAP**
+
+  - The reader handles zstd-compressed Chunk records.
+
+  **Requirements**
+
+  - The compiler and optional-dependency requirements are stated in the SDK
+    README.
+
+</Update>
+
 <Update label="2026-08-13" description="v00.09.20">
 
   Pairs with M1 firmware v00.09.20.

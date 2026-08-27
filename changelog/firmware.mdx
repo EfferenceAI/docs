@@ -6,6 +6,30 @@ description: "Release history for M1 device firmware"
 Firmware ships as a signed `.eff` bundle applied over A/B slots with automatic
 rollback. See [Firmware Updates](/device/update) for how to check and apply one.
 
+<Update label="2026-08-26" description="v00.09.21">
+
+  **Recording**
+
+  - The start of a recording waits for auto-exposure to converge before the
+    first frame is kept, so a session no longer opens on visibly over- or
+    under-exposed frames. This is on by default; turn it off with
+    `ef-cli config ae-settle off`.
+  - A session that ends is complete and readable on disk, and stays that way
+    even if capture goes down immediately afterwards.
+
+  **Camera**
+
+  - New image tuning, with digital gain capped at 4x to hold noise down in low
+    light.
+
+  **Startup**
+
+  - The device is usable sooner after power-on: it enumerates over USB and
+    starts advertising over Bluetooth earlier in boot.
+
+
+</Update>
+
 <Update label="2026-08-13" description="v00.09.20">
 
   **Bluetooth**
