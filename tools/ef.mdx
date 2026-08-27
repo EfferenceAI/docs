@@ -30,7 +30,11 @@ ef-cli info                   # identity snapshot: serial, fw, camera, IMU, WiFi
 ef-cli state                  # current DEVICE_STATE
 ef-cli config                 # enabled capture modes + current configuration
 ef-cli config set 1920 1200 30 h265   # persist a capture config (idle only)
+ef-cli config ae-settle off   # turn the recording head delay off (persisted)
 ```
+`ef-cli info` and `ef-cli config` both show an `ae-settle` row, and `ef-cli info
+--json` carries it as `ae_settle`. See
+[Recording head delay](/recording/overview#recording-head-delay).
 
 ### Calibration
 

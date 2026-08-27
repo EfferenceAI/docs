@@ -75,6 +75,11 @@ struct DeviceInformation {
     bool encryption_key_present;     // a key exists
     std::string encryption_key_id;   // "" when absent; never the key itself
     ENCRYPTION_ALGORITHM encryption_algorithm;
+
+    // Recording head delay currently in force. UNKNOWN means the device reported
+    // no policy: either firmware with no head delay at all, or one that could not
+    // read its own state just then. Treating it as OFF is wrong in both cases.
+    AE_SETTLE ae_settle;             // UNKNOWN | ON | OFF
 };
 ```
 

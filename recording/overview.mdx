@@ -81,6 +81,28 @@ it failed outright. When a recording call is refused, `last_error_message()`
 reports the device's specific reason; the `ERROR_CODE` provides only the
 category.
 
+## Recording head delay
+
+By default the device holds the opening frames of a **recording** until
+auto-exposure converges, so a file never starts on visibly wrong exposure. The
+cost is that the file starts later, and **a session shorter than convergence
+records nothing at all** -- neither video nor IMU, because the IMU pre-roll is
+discarded along with the video it is aligned to.
+
+```sh
+ef-cli config ae-settle off
+```
+
+The setting is device-wide and survives reboot. Live paths -- UVC webcam, ISO
+streaming and WiFi streaming -- are never held by it either way. The SDK
+equivalent is [`Device::set_ae_settle()`](/api/device).
+
+`ef-cli info --json` reports it as `ae_settle`, with four values. `on` and `off`
+are the policy in force. `none` means the firmware has no head delay at all, so it
+records from the first frame and the verb returns `UNSUPPORTED`. `unknown` means
+the firmware has a policy but did not report it just then; read it again rather
+than taking it as `off`.
+
 ## Stop reasons and power loss
 
 A recording continues until it is stopped, until storage reaches the reserve

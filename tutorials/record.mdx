@@ -28,7 +28,11 @@ before downloading the MCAP.
             return 1;
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        // Long enough to clear the recording head delay: on by default, it holds
+        // the opening frames until auto-exposure converges. A shorter session
+        // records nothing at all, and how long it takes depends on the scene.
+        // See /recording/overview#recording-head-delay.
+        std::this_thread::sleep_for(std::chrono::seconds(15));
         device.disable_recording();
 
         ef::ERROR_CODE status =
@@ -66,7 +70,7 @@ before downloading the MCAP.
             return 1;
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        std::this_thread::sleep_for(std::chrono::seconds(15));
         device.disable_recording();
 
         ef::ERROR_CODE status = device.download_recording(
