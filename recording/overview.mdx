@@ -87,7 +87,8 @@ By default the device holds the opening frames of a **recording** until
 auto-exposure converges, so a file never starts on visibly wrong exposure. The
 cost is that the file starts later, and **a session shorter than convergence
 records nothing at all** -- neither video nor IMU, because the IMU pre-roll is
-discarded along with the video it is aligned to.
+discarded along with the video it is aligned to. To turn the settle time off
+use the following command:
 
 ```sh
 ef-cli config ae-settle off
