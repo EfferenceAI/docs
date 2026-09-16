@@ -6,6 +6,31 @@ description: "Release history for M1 device firmware"
 Firmware ships as a signed `.eff` bundle applied over A/B slots with automatic
 rollback. See [Firmware Updates](/device/update) for how to check and apply one.
 
+<Update label="2026-09-16" description="v00.09.22">
+
+  **Camera**
+
+  - Per-frame exposure and white-balance telemetry is sent to the host SDK
+    beside every streamed frame, stamped with that frame's id: see the SDK
+    changelog for `retrieve_ae()`.
+  - Improved image tuning: better colour correction and white balance.
+
+  **Startup**
+
+  - Product-mode USB enumeration is about a second faster, and the device is on
+    the bus roughly 0.2 s sooner after power-on.
+
+  **Health and diagnostics**
+
+  - A device that has stopped itself after a fault resumes only after a health
+    check that passes (`ef-cli health`).
+  - Storage that has reached the end of its rated life is reported as a failure.
+  - The device can collect a support bundle (journal, crash records, health
+    history, update log and daemon status, bounded) and send it to Efference
+    support on request from the host.
+
+</Update>
+
 <Update label="2026-08-26" description="v00.09.21">
 
   **Recording**
