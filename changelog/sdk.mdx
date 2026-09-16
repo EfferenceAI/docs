@@ -12,6 +12,55 @@ See [Installation](/get-started/installation) to get the current version.
   firmware change, that is called out in the entry.
 </Note>
 
+<Update label="2026-09-16" description="v00.09.22">
+
+  Pairs with M1 firmware v00.09.22.
+
+  **Exposure telemetry**
+
+  - `Device::retrieve_ae()` returns the exposure the device applied to a frame:
+    integration time in seconds, analog and digital gain as linear multiples, ISO,
+    an estimated scene colour temperature in kelvin (0 when unavailable), and the
+    frame id and timestamp it belongs to. One reading arrives per streamed frame;
+    compare its `frame_id` with the image's before pairing them. Readings ride
+    the IMU stream, so over USB they need `enable_imu`.
+  - On an encoded stream a `Mat` now carries the frame id and timestamp of the
+    picture it holds, which can be one frame behind the frame `grab()` latched.
+    Use the `Mat`'s own `getFrameId()` / `getTimestamp()` to pair pixels with data.
+
+  **Viewer**
+
+  - `s` (or the Save button on Qt builds) writes the current frame as a
+    full-resolution PNG into `--save-dir`, with a JSON sidecar carrying the frame
+    id, device timestamp, firmware version, requested flip mode and the newest
+    exposure reading. The console status line now shows the exposure reading
+    beside the IMU values.
+
+  **Support**
+
+  - `ef-cli logs upload [--boots <n>]` asks the device to collect its diagnostic
+    bundle and send it to Efference support over its own Wi-Fi; `ef-cli logs
+    status` reports the outcome. Nothing passes through the host.
+    (`Device::upload_logs`, `get_logs_upload_status`.)
+
+  **Device information**
+
+  - A command refused because the device has stopped itself after a fault now
+    says so and says how to recover. `health_check` is allowed in that state.
+  - `info` no longer reports the IMU as available from a calibration flag; it
+    reports what the hardware says.
+
+  **Health**
+
+  - The deep sweep takes about 35 s; the SDK's documented deadlines are unchanged.
+
+  **Tools**
+
+  - `mcap_to_video --from-stream` muxes an already-extracted elementary stream,
+    and the mux settings (colour description, index placement) are now tested.
+
+</Update>
+
 <Update label="2026-08-26" description="v00.09.21">
 
   Pairs with M1 firmware v00.09.21.
