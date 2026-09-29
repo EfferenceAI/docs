@@ -1,0 +1,212 @@
+---
+title: "Multi-Camera Sync"
+description: "Synchronize the clocks and frames of two or more M1 cameras"
+---
+
+Two or more M1 cameras can work as one **synced group**. One camera is the
+**leader**: its clock is the group's timebase. The others are **followers**:
+each one disciplines its clock to the leader's, camera to camera, with no
+computer or phone in the loop once the group is formed.
+
+When a camera's clock is locked, it also aligns the timing of its frames to the
+same shared schedule, so frames from every camera in the group are captured at
+the same instant. Recordings and live streams from a synced group therefore
+pair frame for frame, and their timestamps are directly comparable.
+
+## Requirements
+
+- Two or more M1 cameras running firmware with multi-camera sync (see the
+  [firmware changelog](/changelog/firmware)).
+- Every camera joined to the **same WiFi network** (see
+  [WiFi Provisioning](/device/wifi)). The group uses it for downloads; the sync
+  itself runs on a separate link, described below.
+- A phone with the Efference app, or a computer with `ef-cli`, that can reach
+  every camera over Bluetooth LE (or USB, for `ef-cli`).
+- Frame alignment requires the cameras to capture at **30 fps**. At other
+  frame rates the clocks still synchronize, but frames are not aligned.
+
+## How it works
+
+Forming a group does the following, in order:
+
+1. The phone or computer sets every camera's clock from its own, the leader's
+   first, so the group starts close to real time.
+2. The leader starts a private WPA3 network, the **sync link**, on the same
+   channel as its WiFi uplink, with a key it generates itself. The key is
+   renewed every time the group is formed.
+3. Each follower receives the link's credentials, joins it, and starts
+   following the leader's clock. Followers keep their normal WiFi connection
+   for uploads and downloads.
+4. The group is formed once every camera reports **LOCKED** and holds the same
+   link key.
+
+A leader's sync link holds up to 31 followers.
+
+The group survives reboots: a camera that restarts rejoins its group and
+locks again on its own.
+
+## Form a group in the Efference app
+
+<Steps>
+  <Step title="Pick the cameras">
+    Open the **Group** tab and tap **Scan for cameras**. Tick every camera that
+    should be in the group. The first camera you pick is the leader; tap
+    **Make leader** on another camera to change it.
+  </Step>
+  <Step title="Connect">
+    Tap **Connect N cameras**. The app opens a Bluetooth connection to each one.
+  </Step>
+  <Step title="Form the group">
+    Tap **Form group**. The app sets the clocks, starts the sync link on the
+    leader, and waits until every camera is locked. This usually takes under
+    15 seconds.
+  </Step>
+</Steps>
+
+Leave **Clock filter** on **Kalman** unless Efference support advises
+otherwise.
+
+### Read the sync lights
+
+Every camera in the Group tab, and every tile in the group live view, shows
+two lights:
+
+| Light | Green means | Red means |
+|---|---|---|
+| **Clock sync** | The camera's clock is locked to the leader. The leader shows green once its clock is set. | Not locked yet, lock lost, or the camera is not answering. |
+| **Phase lock** | The camera's frames are aligned with the rest of the group. | The camera is not recording or streaming, is not at 30 fps, or has not aligned yet. |
+
+The lights refresh every two seconds while the Group tab is open. **Phase
+lock** is red whenever a camera is idle; that is expected, because frames are
+only aligned while the camera captures. Hold a finger on a light to see why
+it is red.
+
+### Record, view, and download
+
+- **Record on all cameras** starts a recording with the same name on every
+  camera. A camera whose clock is not locked refuses to record, so a group
+  recording is always synchronized. **Stop recording** stops all of them.
+- **Live view (all cameras)** streams every camera side by side, each with its
+  frame offset from the first camera in microseconds.
+- **Download … from all cameras** copies each camera's recording to the phone
+  over WiFi, into one folder per camera. The phone must be on the same WiFi
+  network as the cameras. A camera that cannot send over WiFi falls back to
+  Bluetooth, which is much slower.
+
+### Leave a group
+
+- **Disconnect (keep the group)** closes the app's connections. The cameras
+  stay synced and keep their group across reboots.
+- **Return every camera to standalone** turns sync off on every camera and
+  shuts down the sync link, erasing its key.
+
+## Form a group with ef-cli
+
+Name every camera with `--ble <MAC>` or `--serial <serial>`, then run `init`.
+The first camera named is the leader:
+
+```bash
+ef-cli --ble 74:A2:35:10:00:19 --ble 60:48:9C:BA:1D:95 init
+```
+
+```text
+[M1-39] leader  LOCKED  key 08f137a69d86c69e  locked in 0.0 s
+[M1-462cad6f133818a7] follower  LOCKED  key 08f137a69d86c69e  locked in 2.1 s
+group formed: recordings and streams from these cameras are phase-aligned
+```
+
+Every camera reports the same `key`: a fingerprint of the sync link's key, which
+itself is never shown. Options:
+
+| Option | Meaning |
+|---|---|
+| `--leader <MAC\|serial>` | Choose the leader instead of the first camera named. |
+| `--timeout <s>` | How long to wait for every camera to lock (default 60 s). |
+
+Any other command runs on each camera of the group in turn, with its output
+prefixed by the camera:
+
+```bash
+ef-cli --ble 74:A2:35:10:00:19 --ble 60:48:9C:BA:1D:95 record start take-1
+ef-cli --ble 74:A2:35:10:00:19 --ble 60:48:9C:BA:1D:95 record stop
+ef-cli --ble 74:A2:35:10:00:19 --ble 60:48:9C:BA:1D:95 download take-1 ./takes
+```
+
+`download` saves each camera's copy under `./takes/<camera>/`.
+
+### Check the sync state
+
+`info` shows each camera's role, its lock state, its offset from the leader,
+and whether its frames are aligned:
+
+```text
+[39] sync             : leader, LOCKED, serving 1 follower
+[39] frame phase      : locked, error -34.4 us
+[462cad6f133818a7] sync             : follower, LOCKED, offset +11.1 us +- 33.5 us, locked in 2.1 s
+[462cad6f133818a7] frame phase      : locked, error +7.7 us
+```
+
+`frame phase` reads `off` while a camera is idle, `acquiring` while it aligns
+its frames after a recording or stream starts, and `locked` once they are
+aligned. `info --json` carries the same fields for scripts.
+
+To return a camera to standalone, run `init` with that camera alone:
+
+```bash
+ef-cli --ble 60:48:9C:BA:1D:95 init
+```
+
+## Lock states
+
+| State | Meaning |
+|---|---|
+| `ACQUIRING` | The follower is measuring the leader's clock. |
+| `LOCKED` | The clock follows the leader. Recording is allowed. |
+| `HOLDOVER` | The leader went quiet; the follower keeps time on its own for a short while. |
+| `DEGRADED` | The link to the leader is too noisy for full accuracy. |
+| `LOST` | The follower has no timebase. It refuses to record until it locks again. |
+
+## When sync is lost
+
+- **The leader restarts or loses power.** Followers go to `HOLDOVER`, then
+  `LOST`. When the leader comes back, they rejoin and lock again on their own,
+  usually within a minute. A recording that was already running keeps
+  running, but frames it captures while a camera is not `LOCKED` are not
+  guaranteed to be aligned; a new recording waits for the lock.
+- **A follower is out of range of the leader.** It cannot hear the sync link
+  and drops out of `LOCKED`. Move it closer; it relocks on its own.
+- **A camera does not lock after forming.** Check that every camera is on the
+  same WiFi network, then form the group again. Forming again always issues a
+  new link key.
+
+<Note>
+Setting a follower's clock by hand while it is locked has no effect: the group's
+timebase wins. Setting the leader's clock moves the whole group only if the
+change is larger than one second; smaller corrections are ignored so that a
+connecting phone or computer does not disturb a running group.
+</Note>
+
+## Use sync from the SDK
+
+`ef::Group` forms and manages a group from C++:
+
+```cpp
+#include <ef/Group.hpp>
+
+ef::Group group;
+group.open({ef::DeviceRef::ble("74:A2:35:10:00:19"),
+            ef::DeviceRef::ble("60:48:9C:BA:1D:95")});
+
+ef::FormOptions options;          // camera 0 leads
+options.lock_timeout_s = 60;
+std::string why;
+if (group.form(options, &why) != ef::ERROR_CODE::SUCCESS) {
+    std::fprintf(stderr, "form failed: %s\n", why.c_str());
+}
+
+for (const auto& s : group.sync_status()) {
+    // s.mode, s.state, s.theta_ns, s.frame_phase, s.link.key_id
+}
+```
+
+`group.dissolve()` returns every camera to standalone.

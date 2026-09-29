@@ -67,6 +67,7 @@
               "recording/replay",
               "device/health",
               "device/wifi",
+              "device/sync",
               "device/update",
               "device/security",
               "device/management"
