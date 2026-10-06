@@ -166,6 +166,24 @@ ef-cli --ble 60:48:9C:BA:1D:95 init
 | `DEGRADED` | The link to the leader is too noisy for full accuracy. |
 | `LOST` | The follower has no timebase. It refuses to record until it locks again. |
 
+### What `LOCKED` means
+
+A follower reports `LOCKED` only while its estimated offset from the leader, plus twice the
+estimate's uncertainty, is under 200 µs. The uncertainty includes a 15 µs allowance for link
+error that a two-way exchange cannot see. Measured against an LED timing panel on two cameras,
+frames from a locked group were within 56–76 µs of each other at the 99th percentile.
+
+Three limits apply:
+- **The link is assumed symmetric.** Time over Wi-Fi is measured from round trips, and a delay
+  that affects only one direction is invisible to any round-trip method. A slowly changing
+  one-way delay moves the true offset without moving the estimate.
+- **A sudden change in the leader's clock rate shows up at the next measurement.** A follower
+  measures every 10 s or more often, so a sudden 20 ppm change in the leader's rate can read
+  `LOCKED` while more than 200 µs off for up to about 15 s. The leader's own rate corrections are
+  announced to followers and do not cause this.
+- **After a short outage.** A follower keeps `LOCKED` for up to 30 s without hearing the leader,
+  then goes to `HOLDOVER`.
+
 ## When sync is lost
 
 - **The leader restarts or loses power.** Followers go to `HOLDOVER`, then
@@ -182,8 +200,9 @@ ef-cli --ble 60:48:9C:BA:1D:95 init
 <Note>
 Setting a follower's clock by hand while it is locked has no effect: the group's
 timebase wins. Setting the leader's clock moves the whole group only if the
-change is larger than one second; smaller corrections are ignored so that a
-connecting phone or computer does not disturb a running group.
+change is larger than 50 ms; smaller corrections are held off so that a
+connecting phone or computer does not disturb a running group. While any
+follower is recording, the leader refuses to have its clock set at all.
 </Note>
 
 ## Use sync from the SDK
