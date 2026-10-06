@@ -199,10 +199,10 @@ Three limits apply:
 
 <Note>
 Setting a follower's clock by hand while it is locked has no effect: the group's
-timebase wins. Setting the leader's clock moves the whole group only if the
-change is larger than 50 ms; smaller corrections are held off so that a
-connecting phone or computer does not disturb a running group. While any
-follower is recording, the leader refuses to have its clock set at all.
+timebase wins. Once its time is set, the leader keeps it while followers are
+connected: a phone or computer connecting later does not move the group's
+clock (the leader still uses it to correct its own rate). To reset the group's
+time, form the group again.
 </Note>
 
 ## Use sync from the SDK
