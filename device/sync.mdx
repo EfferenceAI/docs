@@ -30,7 +30,8 @@ pair frame for frame, and their timestamps are directly comparable.
 Forming a group does the following, in order:
 
 1. The phone or computer sets every camera's clock from its own, the leader's
-   first, so the group starts close to real time.
+   first, so the group starts close to real time. See
+   [Time of day](#time-of-day-utc) for when that time counts as confirmed UTC.
 2. The leader starts a private WPA3 network, the **sync link**, on the same
    channel as its WiFi uplink, with a key it generates itself. The key is
    renewed every time the group is formed.
@@ -41,6 +42,14 @@ Forming a group does the following, in order:
    link key.
 
 A leader's sync link holds up to 31 followers.
+
+<Warning>
+Use a WiFi network on a non-DFS channel (36–48 or 149–165 in the 5 GHz band). On a DFS channel
+(52–144) the leader cannot host the sync link on the uplink's channel and picks another one. Each
+camera has a single radio, so it then switches between the two channels: it spends about 55–60 ms
+of every 100 ms away from the WiFi network, which roughly halves WiFi throughput and drops packets
+from live streams.
+</Warning>
 
 The group survives reboots: a camera that restarts rejoins its group and
 locks again on its own.
@@ -73,7 +82,7 @@ two lights:
 
 | Light | Green means | Red means |
 |---|---|---|
-| **Clock sync** | The camera's clock is locked to the leader. The leader shows green once its clock is set. | Not locked yet, lock lost, or the camera is not answering. |
+| **Clock sync** | The camera's clock is locked to the leader. The leader shows green while it serves the group. | Not locked yet, lock lost, or the camera is not answering. |
 | **Phase lock** | The camera's frames are aligned with the rest of the group. | The camera is not recording or streaming, is not at 30 fps, or has not aligned yet. |
 
 The lights refresh every two seconds while the Group tab is open. **Phase
@@ -81,11 +90,17 @@ lock** is red whenever a camera is idle; that is expected, because frames are
 only aligned while the camera captures. Hold a finger on a light to see why
 it is red.
 
+A **UTC unreliable · cameras synced to each other** pill appears when the group's time of day is
+not confirmed. The cameras are still synced to each other and record as usual; only the absolute
+time on the recordings may be off. Tap the pill to see why. See
+[Time of day](#time-of-day-utc).
+
 ### Record, view, and download
 
 - **Record on all cameras** starts a recording with the same name on every
-  camera. A camera whose clock is not locked refuses to record, so a group
-  recording is always synchronized. **Stop recording** stops all of them.
+  camera. A follower whose clock is not locked refuses to record, so a group
+  recording is always synchronized. Recording does not depend on the time of
+  day being confirmed. **Stop recording** stops all of them.
 - **Live view (all cameras)** streams every camera side by side, each with its
   frame offset from the first camera in microseconds.
 - **Download … from all cameras** copies each camera's recording to the phone
@@ -137,13 +152,15 @@ ef-cli --ble 74:A2:35:10:00:19 --ble 60:48:9C:BA:1D:95 download take-1 ./takes
 ### Check the sync state
 
 `info` shows each camera's role, its lock state, its offset from the leader,
-and whether its frames are aligned:
+whether its frames are aligned, and whether its time of day is confirmed UTC:
 
 ```text
 [39] sync             : leader, LOCKED, serving 1 follower
 [39] frame phase      : locked, error -34.4 us
+[39] utc              : reliable (time source ble)
 [462cad6f133818a7] sync             : follower, LOCKED, offset +11.1 us +- 33.5 us, locked in 2.1 s
 [462cad6f133818a7] frame phase      : locked, error +7.7 us
+[462cad6f133818a7] utc              : from the leader (time source sync)
 ```
 
 `frame phase` reads `off` while a camera is idle, `acquiring` while it aligns
@@ -184,6 +201,29 @@ Three limits apply:
 - **After a short outage.** A follower keeps `LOCKED` for up to 30 s without hearing the leader,
   then goes to `HOLDOVER`.
 
+## Time of day (UTC)
+
+Synchronization and the time of day are separate. The cameras of a group always share the leader's
+timebase, so their timestamps pair with each other whatever time the leader holds. Whether that time
+is also correct UTC depends on where the leader's clock came from:
+
+| Time source | UTC | Where it comes from |
+|---|---|---|
+| `usb`, `ble` | Reliable | Set by a phone or computer whose own clock is confirmed against internet time (NTP) |
+| `mtls` | Reliable | The camera's own network time |
+| `rtc` | Reliable | The camera's battery-backed clock, last set from one of the above |
+| `usb_unsynced`, `ble_unsynced`, `rtc_unsynced` | Unreliable | Set by a phone or computer whose clock is not confirmed, or kept from such a set |
+| `none` | Unreliable | Not set since the camera started, and no kept time |
+| `sync`, `sync-untrusted` | The leader's | A follower takes its time from the leader |
+
+A computer counts as confirmed when its operating system reports the clock synchronized by NTP
+(chrony or systemd-timesyncd), the clock's error bound is under 2 seconds, and, after a sleep, the
+NTP daemon has updated the clock since the computer woke.
+
+When the time is unreliable the cameras still record, and every recording carries its time source
+in its metadata (`clock.source`). To get confirmed UTC, connect from a phone or computer whose
+clock is synchronized and form the group again.
+
 ## When sync is lost
 
 - **The leader restarts or loses power.** Followers go to `HOLDOVER`, then
@@ -199,10 +239,11 @@ Three limits apply:
 
 <Note>
 Setting a follower's clock by hand while it is locked has no effect: the group's
-timebase wins. Once its time is set, the leader keeps it while followers are
-connected: a phone or computer connecting later does not move the group's
-clock (the leader still uses it to correct its own rate). To reset the group's
-time, form the group again.
+timebase wins. Once the leader serves followers, a phone or computer connecting
+later moves the group's clock only when its own clock is confirmed UTC, the
+difference is over 250 ms, and no camera is recording, and at most once every
+10 minutes. Smaller differences only correct the leader's rate. To reset the
+group's time at once, form the group again.
 </Note>
 
 ## Use sync from the SDK
